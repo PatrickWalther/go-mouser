@@ -2,6 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/PatrickWalther/go-mouser.svg)](https://pkg.go.dev/github.com/PatrickWalther/go-mouser)
 [![Go Report Card](https://goreportcard.com/badge/github.com/PatrickWalther/go-mouser)](https://goreportcard.com/report/github.com/PatrickWalther/go-mouser)
+[![Coverage](https://img.shields.io/badge/coverage-80.2%25-brightgreen)](https://github.com/PatrickWalther/go-mouser)
 [![Tests](https://github.com/PatrickWalther/go-mouser/actions/workflows/test.yml/badge.svg)](https://github.com/PatrickWalther/go-mouser/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
