@@ -25,17 +25,62 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-  release:
+  build-binaries:
     needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build example binary
+        run: |
+          mkdir -p dist
+          go build -o dist/mouser-search-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} ./examples/search
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+
+  release:
+    needs: build-binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find dist -type f -name "mouser-search-*" -exec cp {} release/ \;
+          ls -la release/
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          files: release/*
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, '-') }}
