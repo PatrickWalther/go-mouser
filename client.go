@@ -169,7 +169,7 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, body inte
 			}
 		}
 
-		err, statusCode, retryAfter := c.doOnce(ctx, method, path, body, result)
+		statusCode, retryAfter, err := c.doOnce(ctx, method, path, body, result)
 		if err == nil {
 			return nil
 		}
@@ -196,17 +196,17 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, body inte
 }
 
 // doOnce performs a single HTTP request attempt.
-// Returns (error, statusCode, retryAfterSeconds).
-func (c *Client) doOnce(ctx context.Context, method, path string, body interface{}, result interface{}) (error, int, int) {
+// Returns (statusCode, retryAfterSeconds, error).
+func (c *Client) doOnce(ctx context.Context, method, path string, body interface{}, result interface{}) (int, int, error) {
 	// Wait for rate limiter
 	if err := c.rateLimiter.Wait(ctx); err != nil {
-		return err, 0, 0
+		return 0, 0, err
 	}
 
 	// Build URL with API key
 	reqURL, err := c.buildURL(path)
 	if err != nil {
-		return err, 0, 0
+		return 0, 0, err
 	}
 
 	// Marshal request body
@@ -214,7 +214,7 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body interface
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("mouser: failed to marshal request: %w", err), 0, 0
+			return 0, 0, fmt.Errorf("mouser: failed to marshal request: %w", err)
 		}
 		reqBody = bytes.NewReader(jsonBody)
 	}
@@ -222,7 +222,7 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body interface
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, reqBody)
 	if err != nil {
-		return fmt.Errorf("mouser: failed to create request: %w", err), 0, 0
+		return 0, 0, fmt.Errorf("mouser: failed to create request: %w", err)
 	}
 
 	// Set headers
@@ -232,14 +232,16 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body interface
 	// Perform request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("mouser: request failed: %w", err), 0, 0
+		return 0, 0, fmt.Errorf("mouser: request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("mouser: failed to read response: %w", err), resp.StatusCode, 0
+		return resp.StatusCode, 0, fmt.Errorf("mouser: failed to read response: %w", err)
 	}
 
 	// Parse Retry-After header
@@ -247,35 +249,35 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body interface
 
 	// Handle rate limiting (429)
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return &MouserError{
+		return resp.StatusCode, retryAfter, &MouserError{
 			StatusCode:  resp.StatusCode,
 			Message:     "rate limit exceeded",
 			Details:     string(respBody),
 			Endpoint:    path,
 			RetryAfter:  retryAfter,
 			IsRetryable: true,
-		}, resp.StatusCode, retryAfter
+		}
 	}
 
 	// Check for HTTP errors
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &MouserError{
+		return resp.StatusCode, retryAfter, &MouserError{
 			StatusCode:  resp.StatusCode,
 			Message:     http.StatusText(resp.StatusCode),
 			Details:     string(respBody),
 			Endpoint:    path,
 			IsRetryable: shouldRetry(nil, resp.StatusCode),
-		}, resp.StatusCode, retryAfter
+		}
 	}
 
 	// Unmarshal response
 	if result != nil {
 		if err := json.Unmarshal(respBody, result); err != nil {
-			return fmt.Errorf("mouser: failed to parse response: %w", err), resp.StatusCode, 0
+			return resp.StatusCode, 0, fmt.Errorf("mouser: failed to parse response: %w", err)
 		}
 	}
 
-	return nil, resp.StatusCode, 0
+	return resp.StatusCode, 0, nil
 }
 
 // getCached retrieves a cached response if available.
