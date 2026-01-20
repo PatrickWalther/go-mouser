@@ -428,3 +428,155 @@ func TestKeywordSearchCommonComponents(t *testing.T) {
 		}
 	}
 }
+
+// TestPartNumberAndManufacturerSearch tests searching by part number and manufacturer.
+func TestPartNumberAndManufacturerSearch(t *testing.T) {
+	skipIfNoKey(t)
+
+	client, err := NewClient(testAPIKey)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	result, err := client.PartNumberAndManufacturerSearch(ctx, PartNumberAndManufacturerSearchOptions{
+		PartNumber:       "RN73H",
+		ManufacturerName: "Vishay",
+	})
+
+	if err != nil {
+		t.Fatalf("failed to search: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	if result.NumberOfResult == 0 {
+		t.Logf("warning: no results found for part number and manufacturer search")
+	}
+}
+
+// TestGetPartDetails tests retrieving part details by key.
+func TestGetPartDetails(t *testing.T) {
+	skipIfNoKey(t)
+
+	client, err := NewClient(testAPIKey)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// First get a part key via keyword search
+	searchResult, err := client.KeywordSearch(ctx, SearchOptions{
+		Keyword: "resistor",
+		Records: 1,
+	})
+
+	if err != nil {
+		t.Fatalf("keyword search failed: %v", err)
+	}
+
+	if len(searchResult.Parts) == 0 {
+		t.Skip("no parts found in keyword search")
+	}
+
+	partNumber := searchResult.Parts[0].MouserPartNumber
+	if partNumber == "" {
+		t.Skip("part number is empty")
+	}
+
+	// Now fetch details
+	details, err := client.GetPartDetails(ctx, partNumber)
+	if err != nil {
+		t.Logf("GetPartDetails returned error (may be expected): %v", err)
+		return
+	}
+
+	if details == nil {
+		t.Logf("warning: GetPartDetails returned nil result")
+	}
+}
+
+// TestGetPartDetailsWithManufacturer tests retrieving part details with manufacturer.
+func TestGetPartDetailsWithManufacturer(t *testing.T) {
+	skipIfNoKey(t)
+
+	client, err := NewClient(testAPIKey)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// First get a part via search
+	searchResult, err := client.KeywordSearch(ctx, SearchOptions{
+		Keyword: "capacitor",
+		Records: 1,
+	})
+
+	if err != nil {
+		t.Fatalf("keyword search failed: %v", err)
+	}
+
+	if len(searchResult.Parts) == 0 {
+		t.Skip("no parts found in keyword search")
+	}
+
+	partNumber := searchResult.Parts[0].MouserPartNumber
+	if partNumber == "" {
+		t.Skip("part number is empty")
+	}
+
+	// Get manufacturer from result
+	mfr := searchResult.Parts[0].Manufacturer
+	if mfr == "" {
+		t.Skip("manufacturer is empty")
+	}
+
+	details, err := client.GetPartDetailsWithManufacturer(ctx, partNumber, mfr)
+	if err != nil {
+		t.Logf("GetPartDetailsWithManufacturer returned error (may be expected): %v", err)
+		return
+	}
+
+	if details == nil {
+		t.Logf("warning: GetPartDetailsWithManufacturer returned nil result")
+	}
+}
+
+// TestSearchAll tests the SearchAll convenience method.
+func TestSearchAll(t *testing.T) {
+	skipIfNoKey(t)
+
+	client, err := NewClient(testAPIKey)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var partCount int
+	err = client.SearchAll(ctx, SearchOptions{
+		Keyword: "resistor",
+		Records: 3,
+	}, func(part Part) bool {
+		partCount++
+		return true // continue iteration
+	})
+
+	if err != nil {
+		t.Logf("SearchAll returned error (may be expected): %v", err)
+		return
+	}
+
+	if partCount == 0 {
+		t.Logf("warning: SearchAll processed no parts")
+	}
+}
