@@ -135,8 +135,8 @@ func TestRateLimiterStats(t *testing.T) {
 	}
 
 	// Make some requests
-	rl.TryAcquire()
-	rl.TryAcquire()
+	_, _ = rl.TryAcquire()
+	_, _ = rl.TryAcquire()
 
 	stats2 := rl.Stats()
 	if stats2.MinuteRemaining != 8 {
@@ -214,7 +214,7 @@ func TestRateLimiterRemainingMinute(t *testing.T) {
 		t.Errorf("expected 10 remaining, got %d", remaining)
 	}
 
-	rl.TryAcquire()
+	_, _ = rl.TryAcquire()
 	remaining = rl.RemainingMinute()
 	if remaining != 9 {
 		t.Errorf("expected 9 remaining after 1 request, got %d", remaining)
@@ -230,7 +230,7 @@ func TestRateLimiterRemainingDaily(t *testing.T) {
 		t.Errorf("expected 100 remaining, got %d", remaining)
 	}
 
-	rl.TryAcquire()
+	_, _ = rl.TryAcquire()
 	remaining = rl.RemainingDaily()
 	if remaining != 99 {
 		t.Errorf("expected 99 remaining after 1 request, got %d", remaining)
@@ -242,8 +242,8 @@ func TestRateLimiterDailyLimitExceeded(t *testing.T) {
 	rl := NewRateLimiter(100, 2) // High per-minute, low daily limit
 
 	// Use up daily limit
-	rl.TryAcquire()
-	rl.TryAcquire()
+	_, _ = rl.TryAcquire()
+	_, _ = rl.TryAcquire()
 
 	// Next request should fail daily limit
 	ok, err := rl.TryAcquire()
