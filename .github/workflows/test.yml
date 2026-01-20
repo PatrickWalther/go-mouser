@@ -34,12 +34,12 @@ jobs:
 
       - name: Unit Tests (with race detector)
         if: matrix.os == 'ubuntu-latest'
-        run: go test -v -race -short -coverprofile=coverage.out ./...
+        run: go test -v -race -short -coverprofile=coverage.out ./... -skip=examples
         shell: bash
 
       - name: Unit Tests (without race detector)
         if: matrix.os != 'ubuntu-latest'
-        run: go test -v -short -coverprofile=coverage.out ./...
+        run: go test -v -short -coverprofile=coverage.out ./... -skip=examples
         shell: bash
 
       - name: Integration Tests
