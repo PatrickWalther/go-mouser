@@ -5,13 +5,21 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at 00:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go-version: ['1.22', '1.23']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.22', '1.23', '1.24']
+      fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
@@ -24,10 +32,17 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-      - name: Test
-        run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Unit Tests
+        run: go test -v -race -short -coverprofile=coverage.out ./...
 
-      - name: Upload coverage
+      - name: Integration Tests
+        if: github.event_name == 'push' || github.event_name == 'schedule'
+        run: go test -v -run Integration ./...
+        env:
+          MOUSER_API_KEY: ${{ secrets.MOUSER_API_KEY }}
+
+      - name: Upload coverage (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.out
@@ -65,7 +80,28 @@ jobs:
           args: '-no-fail -fmt sarif -out results.sarif ./...'
 
       - name: Upload Gosec results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: results.sarif
+
+  codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: 'go'
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4

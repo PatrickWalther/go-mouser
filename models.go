@@ -128,8 +128,8 @@ type Part struct {
 	// AvailabilityInStock is the quantity in stock.
 	AvailabilityInStock string `json:"AvailabilityInStock"`
 
-	// AvailabilityOnOrder is the quantity on order.
-	AvailabilityOnOrder string `json:"AvailabilityOnOrder"`
+	// AvailabilityOnOrder is the quantity on order (array of scheduled availability).
+	AvailabilityOnOrder []AvailabilityOnOrderObject `json:"AvailabilityOnOrder"`
 
 	// FactoryStock is the factory stock quantity.
 	FactoryStock string `json:"FactoryStock"`
@@ -193,6 +193,15 @@ type Part struct {
 
 	// RestrictionMessage contains any restriction messages.
 	RestrictionMessage string `json:"RestrictionMessage"`
+}
+
+// AvailabilityOnOrderObject represents a scheduled on-order availability.
+type AvailabilityOnOrderObject struct {
+	// Quantity is the quantity available.
+	Quantity int `json:"Quantity"`
+
+	// Date is the date the quantity will be available.
+	Date string `json:"Date"`
 }
 
 // PriceBreak represents a quantity-based price break.

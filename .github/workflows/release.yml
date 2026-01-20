@@ -9,80 +9,66 @@ permissions:
   contents: write
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Run tests
-        run: go test -v -race ./...
-
-      - name: Build
-        run: go build -v ./...
-
-  build-binaries:
-    needs: validate
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.22', '1.23', '1.24']
+    
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
-
-      - name: Build example binary
-        run: |
-          mkdir -p dist
-          go build -o dist/mouser-search-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} ./examples/search
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/
-
-  release:
-    needs: build-binaries
+          go-version: ${{ matrix.go-version }}
+      
+      - name: Build
+        run: go build -v ./...
+      
+      - name: Test
+        run: go test -v -short ./...
+  
+  create-release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-
-      - name: Prepare release files
-        run: |
-          mkdir -p release
-          find dist -type f -name "mouser-search-*" -exec cp {} release/ \;
-          ls -la release/
-
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/*
-          generate_release_notes: true
+          body: |
+            ## go-mouser v${{ github.ref_name }}
+            
+            ### Features
+            - API key-based authentication
+            - Keyword and part number search
+            - Manufacturer-filtered search
+            - Part details and pricing
+            - Built-in caching (configurable TTL)
+            - Rate limiting with backoff retry
+            - Comprehensive error handling
+            - No external dependencies
+            
+            ### Test Coverage
+            - Multi-version Go support (1.22, 1.23, 1.24)
+            - Unit and integration tests
+            - Rate limit handling
+            - Cache behavior validation
+            - Multi-platform testing (Linux, Windows, macOS)
+            
+            ### Usage
+            ```go
+            client, err := mouser.NewClient(apiKey)
+            
+            results, err := client.KeywordSearch(ctx, mouser.SearchOptions{
+              Keyword: "STM32F4",
+              Records: 10,
+            })
+            ```
+            
+            See README.md for more details.
           draft: false
-          prerelease: ${{ contains(github.ref, '-') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
