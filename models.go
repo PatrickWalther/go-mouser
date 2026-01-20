@@ -22,9 +22,9 @@ type SearchOptions struct {
 type SearchOptionType string
 
 const (
-	SearchOptionNone          SearchOptionType = "None"
-	SearchOptionRohs          SearchOptionType = "Rohs"
-	SearchOptionInStock       SearchOptionType = "InStock"
+	SearchOptionNone           SearchOptionType = "None"
+	SearchOptionRohs           SearchOptionType = "Rohs"
+	SearchOptionInStock        SearchOptionType = "InStock"
 	SearchOptionRohsAndInStock SearchOptionType = "RohsAndInStock"
 )
 
@@ -315,9 +315,9 @@ type partNumberAndManufacturerSearchRequest struct {
 }
 
 type searchByPartMfrNameRequest struct {
-	MouserPartNumber   string `json:"mouserPartNumber"`
-	ManufacturerName   string `json:"manufacturerName,omitempty"`
-	PartSearchOptions  string `json:"partSearchOptions,omitempty"`
+	MouserPartNumber  string `json:"mouserPartNumber"`
+	ManufacturerName  string `json:"manufacturerName,omitempty"`
+	PartSearchOptions string `json:"partSearchOptions,omitempty"`
 }
 
 // --- Response types ---
@@ -330,6 +330,6 @@ type searchResponse struct {
 
 // manufacturerListResponse is the response format for manufacturer list requests.
 type manufacturerListResponse struct {
-	Errors               []APIError             `json:"Errors"`
+	Errors                 []APIError             `json:"Errors"`
 	MouserManufacturerList ManufacturerListResult `json:"MouserManufacturerList"`
 }

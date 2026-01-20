@@ -24,13 +24,13 @@ var (
 
 // MouserError represents a structured error from the Mouser API.
 type MouserError struct {
-	StatusCode   int        // HTTP status code
-	Message      string     // Error message
-	Details      string     // Additional details
-	Errors       []APIError // Mouser domain errors
-	Endpoint     string     // API endpoint that failed
-	RetryAfter   int        // Seconds to wait before retrying (from Retry-After header)
-	IsRetryable  bool       // Whether this error is retryable
+	StatusCode  int        // HTTP status code
+	Message     string     // Error message
+	Details     string     // Additional details
+	Errors      []APIError // Mouser domain errors
+	Endpoint    string     // API endpoint that failed
+	RetryAfter  int        // Seconds to wait before retrying (from Retry-After header)
+	IsRetryable bool       // Whether this error is retryable
 }
 
 // Error implements the error interface.

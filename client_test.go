@@ -405,9 +405,7 @@ func TestIntegrationClientSetupWithRealAPI(t *testing.T) {
 	// Basic stats check
 	stats := client.RateLimitStats()
 	if stats.MinuteRemaining <= 0 || stats.DailyRemaining <= 0 {
-		t.Logf("Warning: rate limits may be exhausted (minute: %d, daily: %d)", 
+		t.Logf("Warning: rate limits may be exhausted (minute: %d, daily: %d)",
 			stats.MinuteRemaining, stats.DailyRemaining)
 	}
 }
-
-

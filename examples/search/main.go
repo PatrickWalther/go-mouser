@@ -12,11 +12,11 @@ import (
 
 func main() {
 	var (
-		apiKey      = flag.String("api-key", os.Getenv("MOUSER_API_KEY"), "Mouser API key (or set MOUSER_API_KEY env var)")
-		keyword     = flag.String("keyword", "", "Search keyword")
-		partNumber  = flag.String("part", "", "Part number to search")
-		mfrName     = flag.String("mfr", "", "Manufacturer name (use with -keyword)")
-		records     = flag.Int("records", 10, "Number of results to return (max 50)")
+		apiKey     = flag.String("api-key", os.Getenv("MOUSER_API_KEY"), "Mouser API key (or set MOUSER_API_KEY env var)")
+		keyword    = flag.String("keyword", "", "Search keyword")
+		partNumber = flag.String("part", "", "Part number to search")
+		mfrName    = flag.String("mfr", "", "Manufacturer name (use with -keyword)")
+		records    = flag.Int("records", 10, "Number of results to return (max 50)")
 	)
 	flag.Parse()
 

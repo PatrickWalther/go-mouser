@@ -486,5 +486,3 @@ func TestContextTimeoutError(t *testing.T) {
 		t.Logf("Context error type: %T, value: %v", err, err)
 	}
 }
-
-
