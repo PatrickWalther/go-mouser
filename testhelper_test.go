@@ -67,7 +67,7 @@ func TestNewTestClientRoundtrip(t *testing.T) {
 
 	client := newTestClient(t, handler)
 
-	result, err := client.KeywordSearch(context.Background(), SearchOptions{
+	result, err := client.Search.KeywordSearch(context.Background(), SearchOptions{
 		Keyword: "test",
 		Records: 1,
 	})
@@ -117,7 +117,7 @@ func TestPartNumberSearchSendsPartSearchOptions(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, _ = client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+	_, _ = client.Search.PartNumberSearch(context.Background(), PartNumberSearchOptions{
 		PartNumber:       "TEST-123",
 		PartSearchOption: PartSearchOptionExact,
 	})
@@ -157,7 +157,7 @@ func TestPartNumberSearchOnlySendsExpectedFields(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, _ = client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+	_, _ = client.Search.PartNumberSearch(context.Background(), PartNumberSearchOptions{
 		PartNumber:                   "TEST-123",
 		Records:                      10,
 		StartingRecord:               5,
@@ -196,7 +196,7 @@ func TestPartDeserializationNewFields(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: "test", Records: 1})
+	result, err := client.Search.KeywordSearch(context.Background(), SearchOptions{Keyword: "test", Records: 1})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestSearchAllByManufacturerMock(t *testing.T) {
 	client := newTestClient(t, handler)
 
 	var collected []string
-	err := client.SearchAllByManufacturer(context.Background(),
+	err := client.Search.AllByManufacturer(context.Background(),
 		KeywordAndManufacturerSearchOptions{
 			Keyword:          "test",
 			ManufacturerName: "TestMfr",
@@ -301,7 +301,7 @@ func TestSearchAllByManufacturerEarlyStopMock(t *testing.T) {
 	client := newTestClient(t, handler)
 
 	count := 0
-	err := client.SearchAllByManufacturer(context.Background(),
+	err := client.Search.AllByManufacturer(context.Background(),
 		KeywordAndManufacturerSearchOptions{Keyword: "test", ManufacturerName: "TestMfr"},
 		func(p Part) bool {
 			count++
@@ -325,7 +325,7 @@ func TestSearchAllByManufacturerEmptyMock(t *testing.T) {
 	client := newTestClient(t, handler)
 
 	count := 0
-	err := client.SearchAllByManufacturer(context.Background(),
+	err := client.Search.AllByManufacturer(context.Background(),
 		KeywordAndManufacturerSearchOptions{Keyword: "nonexistent", ManufacturerName: "Nobody"},
 		func(p Part) bool {
 			count++
@@ -389,7 +389,7 @@ func TestKeywordSearchMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.KeywordSearch(context.Background(), SearchOptions{
+	result, err := client.Search.KeywordSearch(context.Background(), SearchOptions{
 		Keyword:      "capacitor",
 		Records:      10,
 		SearchOption: SearchOptionInStock,
@@ -438,7 +438,7 @@ func TestPartNumberSearchMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+	result, err := client.Search.PartNumberSearch(context.Background(), PartNumberSearchOptions{
 		PartNumber:       "LM386",
 		PartSearchOption: PartSearchOptionExact,
 	})
@@ -481,7 +481,7 @@ func TestKeywordAndManufacturerSearchMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.KeywordAndManufacturerSearch(context.Background(), KeywordAndManufacturerSearchOptions{
+	result, err := client.Search.KeywordAndManufacturerSearch(context.Background(), KeywordAndManufacturerSearchOptions{
 		Keyword:          "microcontroller",
 		ManufacturerName: "Texas Instruments",
 		Records:          10,
@@ -522,7 +522,7 @@ func TestPartNumberAndManufacturerSearchMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.PartNumberAndManufacturerSearch(context.Background(), PartNumberAndManufacturerSearchOptions{
+	result, err := client.Search.PartNumberAndManufacturerSearch(context.Background(), PartNumberAndManufacturerSearchOptions{
 		PartNumber:       "RN73H",
 		ManufacturerName: "Vishay",
 	})
@@ -559,7 +559,7 @@ func TestGetManufacturerListMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	result, err := client.GetManufacturerList(context.Background())
+	result, err := client.Search.ManufacturerList(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -591,7 +591,7 @@ func TestGetPartDetailsMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	part, err := client.GetPartDetails(context.Background(), "STM32F407VGT6")
+	part, err := client.Search.PartDetails(context.Background(), "STM32F407VGT6")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -611,7 +611,7 @@ func TestGetPartDetailsNotFoundMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.GetPartDetails(context.Background(), "NONEXISTENT-PART")
+	_, err := client.Search.PartDetails(context.Background(), "NONEXISTENT-PART")
 	if err == nil {
 		t.Fatal("expected error for not found part")
 	}
@@ -648,7 +648,7 @@ func TestSearchAllMock(t *testing.T) {
 	client := newTestClient(t, handler)
 
 	var collected int
-	err := client.SearchAll(context.Background(), SearchOptions{Keyword: "test"}, func(p Part) bool {
+	err := client.Search.All(context.Background(), SearchOptions{Keyword: "test"}, func(p Part) bool {
 		collected++
 		return true
 	})
@@ -671,7 +671,7 @@ func TestSearchAPIErrorMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: ""})
+	_, err := client.Search.KeywordSearch(context.Background(), SearchOptions{Keyword: ""})
 	if err == nil {
 		t.Fatal("expected error for API error response")
 	}
@@ -685,7 +685,7 @@ func TestSearchHTTPErrorMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: "test"})
+	_, err := client.Search.KeywordSearch(context.Background(), SearchOptions{Keyword: "test"})
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}

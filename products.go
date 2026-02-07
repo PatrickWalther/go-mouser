@@ -13,7 +13,9 @@ const (
 
 // KeywordSearch searches for parts by keyword.
 // This uses the V1-compatible endpoint for broad keyword searches.
-func (c *Client) KeywordSearch(ctx context.Context, opts SearchOptions) (*SearchResult, error) {
+func (s *SearchService) KeywordSearch(ctx context.Context, opts SearchOptions) (*SearchResult, error) {
+	c := s.client
+
 	// Validate and set defaults
 	if opts.Records <= 0 {
 		opts.Records = 10
@@ -61,7 +63,9 @@ func (c *Client) KeywordSearch(ctx context.Context, opts SearchOptions) (*Search
 
 // PartNumberSearch searches for parts by part number.
 // This uses the V1-compatible endpoint. For manufacturer-specific search, use PartNumberAndManufacturerSearch.
-func (c *Client) PartNumberSearch(ctx context.Context, opts PartNumberSearchOptions) (*SearchResult, error) {
+func (s *SearchService) PartNumberSearch(ctx context.Context, opts PartNumberSearchOptions) (*SearchResult, error) {
+	c := s.client
+
 	req := partNumberSearchRequest{
 		SearchByPartRequest: searchByPartRequest{
 			MouserPartNumber:  opts.PartNumber,
@@ -98,7 +102,9 @@ func (c *Client) PartNumberSearch(ctx context.Context, opts PartNumberSearchOpti
 
 // KeywordAndManufacturerSearch searches for parts by keyword and manufacturer.
 // This is a V2 endpoint that supports pagination via PageNumber.
-func (c *Client) KeywordAndManufacturerSearch(ctx context.Context, opts KeywordAndManufacturerSearchOptions) (*SearchResult, error) {
+func (s *SearchService) KeywordAndManufacturerSearch(ctx context.Context, opts KeywordAndManufacturerSearchOptions) (*SearchResult, error) {
+	c := s.client
+
 	// Validate and set defaults
 	if opts.Records <= 0 {
 		opts.Records = 10
@@ -150,7 +156,9 @@ func (c *Client) KeywordAndManufacturerSearch(ctx context.Context, opts KeywordA
 
 // PartNumberAndManufacturerSearch searches for parts by part number and manufacturer.
 // This is a V2 endpoint that provides more precise matching.
-func (c *Client) PartNumberAndManufacturerSearch(ctx context.Context, opts PartNumberAndManufacturerSearchOptions) (*SearchResult, error) {
+func (s *SearchService) PartNumberAndManufacturerSearch(ctx context.Context, opts PartNumberAndManufacturerSearchOptions) (*SearchResult, error) {
+	c := s.client
+
 	req := partNumberAndManufacturerSearchRequest{
 		SearchByPartMfrNameRequest: searchByPartMfrNameRequest{
 			MouserPartNumber:  opts.PartNumber,
@@ -186,9 +194,11 @@ func (c *Client) PartNumberAndManufacturerSearch(ctx context.Context, opts PartN
 	return &resp.SearchResults, nil
 }
 
-// GetManufacturerList returns the list of all manufacturers in the Mouser catalog.
+// ManufacturerList returns the list of all manufacturers in the Mouser catalog.
 // This result is heavily cached as it rarely changes.
-func (c *Client) GetManufacturerList(ctx context.Context) (*ManufacturerListResult, error) {
+func (s *SearchService) ManufacturerList(ctx context.Context) (*ManufacturerListResult, error) {
+	c := s.client
+
 	// Check cache first (manufacturer list is mostly static)
 	cacheKey := cacheKeyForManufacturers()
 	if cached, ok := c.getCached(cacheKey); ok {
@@ -216,9 +226,11 @@ func (c *Client) GetManufacturerList(ctx context.Context) (*ManufacturerListResu
 	return &resp.MouserManufacturerList, nil
 }
 
-// GetPartDetails retrieves detailed information for a specific part.
+// PartDetails retrieves detailed information for a specific part.
 // This is a convenience method that uses PartNumberSearch with Records=1.
-func (c *Client) GetPartDetails(ctx context.Context, partNumber string) (*Part, error) {
+func (s *SearchService) PartDetails(ctx context.Context, partNumber string) (*Part, error) {
+	c := s.client
+
 	// Check cache
 	cacheKey := cacheKeyForDetails(partNumber)
 	if cached, ok := c.getCached(cacheKey); ok {
@@ -228,7 +240,7 @@ func (c *Client) GetPartDetails(ctx context.Context, partNumber string) (*Part, 
 		}
 	}
 
-	result, err := c.PartNumberSearch(ctx, PartNumberSearchOptions{
+	result, err := s.PartNumberSearch(ctx, PartNumberSearchOptions{
 		PartNumber:       partNumber,
 		Records:          1,
 		PartSearchOption: PartSearchOptionExact,
@@ -251,9 +263,11 @@ func (c *Client) GetPartDetails(ctx context.Context, partNumber string) (*Part, 
 	return &part, nil
 }
 
-// GetPartDetailsWithManufacturer retrieves detailed information for a specific part from a specific manufacturer.
-// This provides more precise matching than GetPartDetails.
-func (c *Client) GetPartDetailsWithManufacturer(ctx context.Context, partNumber, manufacturerName string) (*Part, error) {
+// PartDetailsWithManufacturer retrieves detailed information for a specific part from a specific manufacturer.
+// This provides more precise matching than PartDetails.
+func (s *SearchService) PartDetailsWithManufacturer(ctx context.Context, partNumber, manufacturerName string) (*Part, error) {
+	c := s.client
+
 	// Check cache
 	cacheKey := cacheKeyForDetails(manufacturerName + ":" + partNumber)
 	if cached, ok := c.getCached(cacheKey); ok {
@@ -263,7 +277,7 @@ func (c *Client) GetPartDetailsWithManufacturer(ctx context.Context, partNumber,
 		}
 	}
 
-	result, err := c.PartNumberAndManufacturerSearch(ctx, PartNumberAndManufacturerSearchOptions{
+	result, err := s.PartNumberAndManufacturerSearch(ctx, PartNumberAndManufacturerSearchOptions{
 		PartNumber:       partNumber,
 		ManufacturerName: manufacturerName,
 		PartSearchOption: PartSearchOptionExact,
@@ -286,15 +300,15 @@ func (c *Client) GetPartDetailsWithManufacturer(ctx context.Context, partNumber,
 	return &part, nil
 }
 
-// SearchAll iterates through all pages of search results, calling the callback for each part.
+// All iterates through all pages of search results, calling the callback for each part.
 // The callback should return true to continue iterating, or false to stop.
 // This is useful for processing large result sets without manually managing pagination.
-func (c *Client) SearchAll(ctx context.Context, opts SearchOptions, callback func(Part) bool) error {
+func (s *SearchService) All(ctx context.Context, opts SearchOptions, callback func(Part) bool) error {
 	opts.Records = MaxRecords
 	opts.StartingRecord = 0
 
 	for {
-		result, err := c.KeywordSearch(ctx, opts)
+		result, err := s.KeywordSearch(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -316,15 +330,15 @@ func (c *Client) SearchAll(ctx context.Context, opts SearchOptions, callback fun
 	return nil
 }
 
-// SearchAllByManufacturer iterates through all pages of keyword+manufacturer search results,
+// AllByManufacturer iterates through all pages of keyword+manufacturer search results,
 // calling the callback for each part. The callback should return true to continue iterating,
 // or false to stop. This uses the V2 PageNumber-based pagination.
-func (c *Client) SearchAllByManufacturer(ctx context.Context, opts KeywordAndManufacturerSearchOptions, callback func(Part) bool) error {
+func (s *SearchService) AllByManufacturer(ctx context.Context, opts KeywordAndManufacturerSearchOptions, callback func(Part) bool) error {
 	opts.Records = MaxRecords
 	opts.PageNumber = 1
 
 	for {
-		result, err := c.KeywordAndManufacturerSearch(ctx, opts)
+		result, err := s.KeywordAndManufacturerSearch(ctx, opts)
 		if err != nil {
 			return err
 		}

@@ -96,7 +96,7 @@ func TestQueryOrderOptionsMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.QueryOrderOptions(context.Background(), OrderOptionsRequest{
+	resp, err := client.Order.QueryOptions(context.Background(), OrderOptionsRequest{
 		CartKey:      "abc-123",
 		CurrencyCode: "USD",
 	})
@@ -138,7 +138,7 @@ func TestGetCurrenciesMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetCurrencies(context.Background(), "US")
+	resp, err := client.Order.Currencies(context.Background(), "US")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -161,8 +161,8 @@ func TestGetCurrenciesCachedMock(t *testing.T) {
 
 	client := newTestClientCached(t, handler)
 
-	_, _ = client.GetCurrencies(context.Background(), "US")
-	_, _ = client.GetCurrencies(context.Background(), "US")
+	_, _ = client.Order.Currencies(context.Background(), "US")
+	_, _ = client.Order.Currencies(context.Background(), "US")
 
 	if callCount != 1 {
 		t.Errorf("expected 1 server call (cached), got %d", callCount)
@@ -187,7 +187,7 @@ func TestGetCountriesMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetCountries(context.Background(), "US")
+	resp, err := client.Order.Countries(context.Background(), "US")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -213,8 +213,8 @@ func TestGetCountriesCachedMock(t *testing.T) {
 
 	client := newTestClientCached(t, handler)
 
-	_, _ = client.GetCountries(context.Background(), "US")
-	_, _ = client.GetCountries(context.Background(), "US")
+	_, _ = client.Order.Countries(context.Background(), "US")
+	_, _ = client.Order.Countries(context.Background(), "US")
 
 	if callCount != 1 {
 		t.Errorf("expected 1 server call (cached), got %d", callCount)
@@ -245,7 +245,7 @@ func TestCreateOrderMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.CreateOrder(context.Background(), CreateOrderRequest{
+	resp, err := client.Order.Create(context.Background(), CreateOrderRequest{
 		CartKey:      "abc-123",
 		CurrencyCode: "USD",
 		SubmitOrder:  false,
@@ -276,7 +276,7 @@ func TestCreateOrderFromPreviousMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.CreateOrderFromPrevious(context.Background(), "ORD-001", "US", "USD", CreateOrderRequest{
+	resp, err := client.Order.CreateFromPrevious(context.Background(), "ORD-001", "US", "USD", CreateOrderRequest{
 		SubmitOrder: false,
 	})
 	if err != nil {
@@ -302,7 +302,7 @@ func TestGetOrderDetailsMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetOrderDetails(context.Background(), "ORD-001")
+	resp, err := client.Order.Details(context.Background(), "ORD-001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -332,7 +332,7 @@ func TestCreateCartFromOrderMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.CreateCartFromOrder(context.Background(), "ORD-001", "US", "USD")
+	resp, err := client.Order.CartFromOrder(context.Background(), "ORD-001", "US", "USD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestOrderErrorHandlingMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.GetOrderDetails(context.Background(), "BAD-ORDER")
+	_, err := client.Order.Details(context.Background(), "BAD-ORDER")
 	if err == nil {
 		t.Fatal("expected error for invalid order")
 	}
@@ -366,8 +366,8 @@ func TestOrderMutationsNotCachedMock(t *testing.T) {
 
 	client := newTestClientCached(t, handler)
 
-	_, _ = client.CreateOrder(context.Background(), CreateOrderRequest{CartKey: "abc"})
-	_, _ = client.CreateOrder(context.Background(), CreateOrderRequest{CartKey: "abc"})
+	_, _ = client.Order.Create(context.Background(), CreateOrderRequest{CartKey: "abc"})
+	_, _ = client.Order.Create(context.Background(), CreateOrderRequest{CartKey: "abc"})
 
 	if callCount != 2 {
 		t.Errorf("expected 2 server calls for mutations (no caching), got %d", callCount)
@@ -485,7 +485,7 @@ func TestIntegrationGetCurrencies(t *testing.T) {
 	}
 	defer client.Close()
 
-	resp, err := client.GetCurrencies(context.Background(), "")
+	resp, err := client.Order.Currencies(context.Background(), "")
 	if err != nil {
 		t.Fatalf("GetCurrencies failed: %v", err)
 	}
@@ -508,7 +508,7 @@ func TestIntegrationGetCountries(t *testing.T) {
 	}
 	defer client.Close()
 
-	resp, err := client.GetCountries(context.Background(), "")
+	resp, err := client.Order.Countries(context.Background(), "")
 	if err != nil {
 		t.Fatalf("GetCountries failed: %v", err)
 	}

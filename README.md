@@ -54,7 +54,7 @@ func main() {
     defer client.Close()
 
     // Search for parts by keyword
-    result, err := client.KeywordSearch(context.Background(), mouser.SearchOptions{
+    result, err := client.Search.KeywordSearch(context.Background(), mouser.SearchOptions{
         Keyword: "STM32F4",
         Records: 10,
     })
@@ -88,7 +88,7 @@ client, err := mouser.NewClient(
 ### Keyword Search
 
 ```go
-result, err := client.KeywordSearch(ctx, mouser.SearchOptions{
+result, err := client.Search.KeywordSearch(ctx, mouser.SearchOptions{
     Keyword: "capacitor",
     Records: 20,
     SearchOption: mouser.SearchOptionInStock,
@@ -102,7 +102,7 @@ for _, part := range result.Parts {
 ### Part Number Search
 
 ```go
-result, err := client.PartNumberSearch(ctx, mouser.PartNumberSearchOptions{
+result, err := client.Search.PartNumberSearch(ctx, mouser.PartNumberSearchOptions{
     PartNumber: "STM32F407VGT6",
     PartSearchOption: mouser.PartSearchOptionExact,
 })
@@ -116,7 +116,7 @@ if len(result.Parts) > 0 {
 ### Search with Manufacturer Filter
 
 ```go
-result, err := client.KeywordAndManufacturerSearch(ctx,
+result, err := client.Search.KeywordAndManufacturerSearch(ctx,
     mouser.KeywordAndManufacturerSearchOptions{
         Keyword: "microcontroller",
         ManufacturerName: "STMicroelectronics",
@@ -128,7 +128,7 @@ result, err := client.KeywordAndManufacturerSearch(ctx,
 
 ```go
 // V1 keyword search pagination
-err := client.SearchAll(ctx, mouser.SearchOptions{
+err := client.Search.All(ctx, mouser.SearchOptions{
     Keyword: "resistor",
 }, func(part mouser.Part) bool {
     fmt.Println(part.Description)
@@ -136,7 +136,7 @@ err := client.SearchAll(ctx, mouser.SearchOptions{
 })
 
 // V2 keyword+manufacturer pagination
-err := client.SearchAllByManufacturer(ctx,
+err := client.Search.AllByManufacturer(ctx,
     mouser.KeywordAndManufacturerSearchOptions{
         Keyword: "capacitor",
         ManufacturerName: "Murata",
@@ -150,17 +150,17 @@ err := client.SearchAllByManufacturer(ctx,
 
 ```go
 // Insert items into a cart
-resp, err := client.InsertCartItems(ctx, mouser.CartItemRequestBody{
+resp, err := client.Cart.InsertItems(ctx, mouser.CartItemRequestBody{
     CartItems: []mouser.CartItemRequest{
         {MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 5},
     },
 }, "US", "USD")
 
 // Get cart contents
-cart, err := client.GetCart(ctx, resp.CartKey, "US", "USD")
+cart, err := client.Cart.Get(ctx, resp.CartKey, "US", "USD")
 
 // Update item quantity
-_, err = client.UpdateCartItems(ctx, mouser.CartItemRequestBody{
+_, err = client.Cart.UpdateItems(ctx, mouser.CartItemRequestBody{
     CartKey: resp.CartKey,
     CartItems: []mouser.CartItemRequest{
         {MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 10},
@@ -168,37 +168,37 @@ _, err = client.UpdateCartItems(ctx, mouser.CartItemRequestBody{
 }, "US", "USD")
 
 // Remove an item
-_, err = client.RemoveCartItem(ctx, resp.CartKey, "595-TMS320F28335PGFA", "US", "USD")
+_, err = client.Cart.RemoveItem(ctx, resp.CartKey, "595-TMS320F28335PGFA", "US", "USD")
 ```
 
 ### Order History
 
 ```go
 // Query by date filter
-history, err := client.GetOrderHistoryByDateFilter(ctx, mouser.DateFilterThisMonth)
+history, err := client.OrderHistory.ByDateFilter(ctx, mouser.DateFilterThisMonth)
 
 // Query by date range
-history, err := client.GetOrderHistoryByDateRange(ctx, "2025-01-01", "2025-06-30")
+history, err := client.OrderHistory.ByDateRange(ctx, "2025-01-01", "2025-06-30")
 
 // Get order details
-detail, err := client.GetOrderBySalesOrderNumber(ctx, "12345678")
+detail, err := client.OrderHistory.BySalesOrderNumber(ctx, "12345678")
 ```
 
 ### Order Operations
 
 ```go
 // Get available currencies and countries
-currencies, err := client.GetCurrencies(ctx, "US")
-countries, err := client.GetCountries(ctx, "")
+currencies, err := client.Order.Currencies(ctx, "US")
+countries, err := client.Order.Countries(ctx, "")
 
 // Query order options for a cart
-options, err := client.QueryOrderOptions(ctx, mouser.OrderOptionsRequest{
+options, err := client.Order.QueryOptions(ctx, mouser.OrderOptionsRequest{
     CartKey: cartKey,
     CurrencyCode: "USD",
 })
 
 // Create an order (use SubmitOrder: false to validate first)
-order, err := client.CreateOrder(ctx, mouser.CreateOrderRequest{
+order, err := client.Order.Create(ctx, mouser.CreateOrderRequest{
     CartKey:      cartKey,
     CurrencyCode: "USD",
     SubmitOrder:  false,
@@ -275,7 +275,7 @@ fmt.Printf("Daily remaining: %d\n", stats.DayRemaining)
 ## Error Handling
 
 ```go
-result, err := client.KeywordSearch(ctx, opts)
+result, err := client.Search.KeywordSearch(ctx, opts)
 if err != nil {
     if errors.Is(err, mouser.ErrNotFound) {
         // Part not found
@@ -296,54 +296,54 @@ if err != nil {
 
 | Endpoint | Method | Function |
 |----------|--------|----------|
-| `/search/keyword` | POST | `KeywordSearch` |
-| `/search/partnumber` | POST | `PartNumberSearch` |
-| `/search/keywordandmanufacturer` | POST | `KeywordAndManufacturerSearch` |
-| `/search/partnumberandmanufacturer` | POST | `PartNumberAndManufacturerSearch` |
-| `/search/manufacturerlist` | GET | `GetManufacturerList` |
+| `/search/keyword` | POST | `Search.KeywordSearch` |
+| `/search/partnumber` | POST | `Search.PartNumberSearch` |
+| `/search/keywordandmanufacturer` | POST | `Search.KeywordAndManufacturerSearch` |
+| `/search/partnumberandmanufacturer` | POST | `Search.PartNumberAndManufacturerSearch` |
+| `/search/manufacturerlist` | GET | `Search.ManufacturerList` |
 
 ### Cart API (8 endpoints)
 
 | Endpoint | Method | Function |
 |----------|--------|----------|
-| `/cart` | GET | `GetCart` |
-| `/cart` | POST | `UpdateCart` |
-| `/cart/items/insert` | POST | `InsertCartItems` |
-| `/cart/items/update` | POST | `UpdateCartItems` |
-| `/cart/item/remove` | POST | `RemoveCartItem` |
-| `/cart/insert/schedule` | POST | `InsertCartSchedule` |
-| `/cart/update/schedule` | POST | `UpdateCartSchedule` |
-| `/cart/deleteall/schedule` | POST | `DeleteAllCartSchedules` |
+| `/cart` | GET | `Cart.Get` |
+| `/cart` | POST | `Cart.Update` |
+| `/cart/items/insert` | POST | `Cart.InsertItems` |
+| `/cart/items/update` | POST | `Cart.UpdateItems` |
+| `/cart/item/remove` | POST | `Cart.RemoveItem` |
+| `/cart/insert/schedule` | POST | `Cart.InsertSchedule` |
+| `/cart/update/schedule` | POST | `Cart.UpdateSchedule` |
+| `/cart/deleteall/schedule` | POST | `Cart.DeleteAllSchedules` |
 
 ### Order History API (4 endpoints)
 
 | Endpoint | Method | Function |
 |----------|--------|----------|
-| `/orderhistory/ByDateFilter` | GET | `GetOrderHistoryByDateFilter` |
-| `/orderhistory/ByDateRange` | GET | `GetOrderHistoryByDateRange` |
-| `/orderhistory/salesOrderNumber` | GET | `GetOrderBySalesOrderNumber` |
-| `/orderhistory/webOrderNumber` | GET | `GetOrderByWebOrderNumber` |
+| `/orderhistory/ByDateFilter` | GET | `OrderHistory.ByDateFilter` |
+| `/orderhistory/ByDateRange` | GET | `OrderHistory.ByDateRange` |
+| `/orderhistory/salesOrderNumber` | GET | `OrderHistory.BySalesOrderNumber` |
+| `/orderhistory/webOrderNumber` | GET | `OrderHistory.ByWebOrderNumber` |
 
 ### Order API (7 endpoints)
 
 | Endpoint | Method | Function |
 |----------|--------|----------|
-| `/order/options/query` | POST | `QueryOrderOptions` |
-| `/order/currencies` | GET | `GetCurrencies` |
-| `/order/countries` | GET | `GetCountries` |
-| `/order` | POST | `CreateOrder` |
-| `/order/CreateFromOrder` | POST | `CreateOrderFromPrevious` |
-| `/order/{orderNumber}` | GET | `GetOrderDetails` |
-| `/order/item/CreateCartFromOrder` | POST | `CreateCartFromOrder` |
+| `/order/options/query` | POST | `Order.QueryOptions` |
+| `/order/currencies` | GET | `Order.Currencies` |
+| `/order/countries` | GET | `Order.Countries` |
+| `/order` | POST | `Order.Create` |
+| `/order/CreateFromOrder` | POST | `Order.CreateFromPrevious` |
+| `/order/{orderNumber}` | GET | `Order.Details` |
+| `/order/item/CreateCartFromOrder` | POST | `Order.CartFromOrder` |
 
 ### Convenience Methods
 
 | Function | Description |
 |----------|-------------|
-| `GetPartDetails` | Exact part number lookup (single part) |
-| `GetPartDetailsWithManufacturer` | Part lookup with manufacturer filter |
-| `SearchAll` | Paginated keyword search iterator |
-| `SearchAllByManufacturer` | Paginated keyword+manufacturer iterator |
+| `Search.PartDetails` | Exact part number lookup (single part) |
+| `Search.PartDetailsWithManufacturer` | Part lookup with manufacturer filter |
+| `Search.All` | Paginated keyword search iterator |
+| `Search.AllByManufacturer` | Paginated keyword+manufacturer iterator |
 
 ## Testing
 

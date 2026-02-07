@@ -46,10 +46,10 @@
 // # API Version
 //
 // This client supports both V1 and V2 Mouser API endpoints:
-//   - KeywordSearch, PartNumberSearch: V1-compatible endpoints
-//   - KeywordAndManufacturerSearch, PartNumberAndManufacturerSearch: V2 endpoints
-//   - GetManufacturerList: V2 endpoint
-//   - Cart, Order History, and Order endpoints: V1 endpoints
+//   - Search.KeywordSearch, Search.PartNumberSearch: V1-compatible endpoints
+//   - Search.KeywordAndManufacturerSearch, Search.PartNumberAndManufacturerSearch: V2 endpoints
+//   - Search.ManufacturerList: V2 endpoint
+//   - Cart, OrderHistory, and Order endpoints: V1 endpoints
 //
 // # Example Usage
 //
@@ -60,7 +60,7 @@
 //	defer client.Close()
 //
 //	// Search by keyword
-//	result, err := client.KeywordSearch(ctx, mouser.SearchOptions{
+//	result, err := client.Search.KeywordSearch(ctx, mouser.SearchOptions{
 //	    Keyword: "STM32F4",
 //	    Records: 10,
 //	})
@@ -73,14 +73,14 @@
 //	}
 //
 //	// Get part details
-//	part, err := client.GetPartDetails(ctx, "STM32F407VGT6")
+//	part, err := client.Search.PartDetails(ctx, "STM32F407VGT6")
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	fmt.Printf("Price breaks: %v\n", part.PriceBreaks)
 //
 //	// Iterate all search results
-//	err = client.SearchAll(ctx, mouser.SearchOptions{Keyword: "capacitor"}, func(part mouser.Part) bool {
+//	err = client.Search.All(ctx, mouser.SearchOptions{Keyword: "capacitor"}, func(part mouser.Part) bool {
 //	    fmt.Println(part.ManufacturerPartNumber)
 //	    return true // continue iterating
 //	})

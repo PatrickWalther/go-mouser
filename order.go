@@ -6,8 +6,10 @@ import (
 	"net/url"
 )
 
-// QueryOrderOptions queries available order options (shipping, payment, etc.) for a cart.
-func (c *Client) QueryOrderOptions(ctx context.Context, req OrderOptionsRequest) (*OrderOptionsResponse, error) {
+// QueryOptions queries available order options (shipping, payment, etc.) for a cart.
+func (s *OrderService) QueryOptions(ctx context.Context, req OrderOptionsRequest) (*OrderOptionsResponse, error) {
+	c := s.client
+
 	wrapped := orderOptionsRequestWrapper{OrderOptionsRequest: req}
 
 	var resp OrderOptionsResponse
@@ -22,9 +24,11 @@ func (c *Client) QueryOrderOptions(ctx context.Context, req OrderOptionsRequest)
 	return &resp, nil
 }
 
-// GetCurrencies retrieves the list of available currencies.
+// Currencies retrieves the list of available currencies.
 // Results are cached for 24 hours by default.
-func (c *Client) GetCurrencies(ctx context.Context, shippingCountryCode string) (*CurrenciesResponse, error) {
+func (s *OrderService) Currencies(ctx context.Context, shippingCountryCode string) (*CurrenciesResponse, error) {
+	c := s.client
+
 	cacheKey := cacheKeyForCurrencies(shippingCountryCode)
 	if cached, ok := c.getCached(cacheKey); ok {
 		var result CurrenciesResponse
@@ -54,9 +58,11 @@ func (c *Client) GetCurrencies(ctx context.Context, shippingCountryCode string) 
 	return &resp, nil
 }
 
-// GetCountries retrieves the list of available countries and their states/provinces.
+// Countries retrieves the list of available countries and their states/provinces.
 // Results are cached for 24 hours by default.
-func (c *Client) GetCountries(ctx context.Context, countryCode string) (*CountriesResponse, error) {
+func (s *OrderService) Countries(ctx context.Context, countryCode string) (*CountriesResponse, error) {
+	c := s.client
+
 	cacheKey := cacheKeyForCountries(countryCode)
 	if cached, ok := c.getCached(cacheKey); ok {
 		var result CountriesResponse
@@ -86,8 +92,10 @@ func (c *Client) GetCountries(ctx context.Context, countryCode string) (*Countri
 	return &resp, nil
 }
 
-// CreateOrder creates a new order from a cart.
-func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (*OrderResponse, error) {
+// Create creates a new order from a cart.
+func (s *OrderService) Create(ctx context.Context, req CreateOrderRequest) (*OrderResponse, error) {
+	c := s.client
+
 	wrapped := createOrderRequestWrapper{CreateOrderRequest: req}
 
 	var resp OrderResponse
@@ -102,8 +110,10 @@ func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (*Orde
 	return &resp, nil
 }
 
-// CreateOrderFromPrevious creates a new order based on a previous order.
-func (c *Client) CreateOrderFromPrevious(ctx context.Context, orderNumber, countryCode, currencyCode string, req CreateOrderRequest) (*OrderResponse, error) {
+// CreateFromPrevious creates a new order based on a previous order.
+func (s *OrderService) CreateFromPrevious(ctx context.Context, orderNumber, countryCode, currencyCode string, req CreateOrderRequest) (*OrderResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("orderNumber", orderNumber)
 	if countryCode != "" {
@@ -127,8 +137,10 @@ func (c *Client) CreateOrderFromPrevious(ctx context.Context, orderNumber, count
 	return &resp, nil
 }
 
-// GetOrderDetails retrieves details for a specific order by order number.
-func (c *Client) GetOrderDetails(ctx context.Context, orderNumber string) (*OrderResponse, error) {
+// Details retrieves details for a specific order by order number.
+func (s *OrderService) Details(ctx context.Context, orderNumber string) (*OrderResponse, error) {
+	c := s.client
+
 	path := "/order/" + url.PathEscape(orderNumber)
 
 	var resp OrderResponse
@@ -143,8 +155,10 @@ func (c *Client) GetOrderDetails(ctx context.Context, orderNumber string) (*Orde
 	return &resp, nil
 }
 
-// CreateCartFromOrder creates a new cart from an existing order.
-func (c *Client) CreateCartFromOrder(ctx context.Context, orderNumber, countryCode, currencyCode string) (*CartResponse, error) {
+// CartFromOrder creates a new cart from an existing order.
+func (s *OrderService) CartFromOrder(ctx context.Context, orderNumber, countryCode, currencyCode string) (*CartResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("orderNumber", orderNumber)
 	if countryCode != "" {

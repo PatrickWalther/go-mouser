@@ -22,7 +22,29 @@ type Client struct {
 	retryConfig RetryConfig
 	cache       Cache
 	cacheConfig CacheConfig
+
+	common       service
+	Search       *SearchService
+	Cart         *CartService
+	OrderHistory *OrderHistoryService
+	Order        *OrderService
 }
+
+type service struct {
+	client *Client
+}
+
+// SearchService handles search-related API endpoints.
+type SearchService service
+
+// CartService handles cart-related API endpoints.
+type CartService service
+
+// OrderHistoryService handles order history API endpoints.
+type OrderHistoryService service
+
+// OrderService handles order-related API endpoints.
+type OrderService service
 
 // ClientOption is a function that configures a Client.
 type ClientOption func(*Client)
@@ -110,6 +132,13 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	if c.cacheConfig.Enabled && c.cache == nil {
 		c.cache = NewMemoryCache(c.cacheConfig.DetailsTTL)
 	}
+
+	// Initialize services
+	c.common.client = c
+	c.Search = (*SearchService)(&c.common)
+	c.Cart = (*CartService)(&c.common)
+	c.OrderHistory = (*OrderHistoryService)(&c.common)
+	c.Order = (*OrderService)(&c.common)
 
 	return c, nil
 }

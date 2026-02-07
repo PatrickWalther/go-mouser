@@ -532,7 +532,7 @@ func TestRealAPIErrorHandling(t *testing.T) {
 	testClient, _ := NewClient("invalid-key-that-should-fail")
 	defer testClient.Close()
 
-	result, err := testClient.KeywordSearch(ctx, SearchOptions{
+	result, err := testClient.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
 	})
 
@@ -557,7 +557,7 @@ func TestContextTimeoutError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
 
-	result, err := client.KeywordSearch(ctx, SearchOptions{
+	result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "test",
 	})
 

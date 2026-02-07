@@ -108,7 +108,7 @@ func TestGetOrderHistoryByDateFilterMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetOrderHistoryByDateFilter(context.Background(), DateFilterAll)
+	resp, err := client.OrderHistory.ByDateFilter(context.Background(), DateFilterAll)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestGetOrderHistoryByDateFilterEnumsMock(t *testing.T) {
 			})
 
 			client := newTestClient(t, handler)
-			_, err := client.GetOrderHistoryByDateFilter(context.Background(), filter)
+			_, err := client.OrderHistory.ByDateFilter(context.Background(), filter)
 			if err != nil {
 				t.Errorf("unexpected error for filter %s: %v", filter, err)
 			}
@@ -172,7 +172,7 @@ func TestGetOrderHistoryByDateRangeMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetOrderHistoryByDateRange(context.Background(), "2025-01-01", "2025-02-01")
+	resp, err := client.OrderHistory.ByDateRange(context.Background(), "2025-01-01", "2025-02-01")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestGetOrderBySalesOrderNumberMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetOrderBySalesOrderNumber(context.Background(), "SO-001")
+	resp, err := client.OrderHistory.BySalesOrderNumber(context.Background(), "SO-001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestGetOrderByWebOrderNumberMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetOrderByWebOrderNumber(context.Background(), "WO-001")
+	resp, err := client.OrderHistory.ByWebOrderNumber(context.Background(), "WO-001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestOrderHistoryErrorHandlingMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.GetOrderHistoryByDateFilter(context.Background(), DateFilterAll)
+	_, err := client.OrderHistory.ByDateFilter(context.Background(), DateFilterAll)
 	if err == nil {
 		t.Fatal("expected error for API error response")
 	}
@@ -358,7 +358,7 @@ func TestIntegrationOrderHistoryByDateFilter(t *testing.T) {
 	}
 	defer client.Close()
 
-	resp, err := client.GetOrderHistoryByDateFilter(context.Background(), DateFilterAll)
+	resp, err := client.OrderHistory.ByDateFilter(context.Background(), DateFilterAll)
 	if err != nil {
 		t.Fatalf("GetOrderHistoryByDateFilter failed: %v", err)
 	}
@@ -379,7 +379,7 @@ func TestIntegrationOrderHistoryByDateRange(t *testing.T) {
 	}
 	defer client.Close()
 
-	resp, err := client.GetOrderHistoryByDateRange(context.Background(), "2024-01-01", "2025-12-31")
+	resp, err := client.OrderHistory.ByDateRange(context.Background(), "2024-01-01", "2025-12-31")
 	if err != nil {
 		t.Fatalf("GetOrderHistoryByDateRange failed: %v", err)
 	}

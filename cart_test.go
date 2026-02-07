@@ -59,7 +59,7 @@ func TestGetCartMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.GetCart(context.Background(), "abc-123", "US", "USD")
+	resp, err := client.Cart.Get(context.Background(), "abc-123", "US", "USD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestUpdateCartMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.UpdateCart(context.Background(), CartItemRequestBody{
+	resp, err := client.Cart.Update(context.Background(), CartItemRequestBody{
 		CartKey: "abc-123",
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "TEST-001", Quantity: 10},
@@ -140,7 +140,7 @@ func TestInsertCartItemsMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.InsertCartItems(context.Background(), CartItemRequestBody{
+	resp, err := client.Cart.InsertItems(context.Background(), CartItemRequestBody{
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "TEST-001", Quantity: 5},
 		},
@@ -168,7 +168,7 @@ func TestUpdateCartItemsMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.UpdateCartItems(context.Background(), CartItemRequestBody{
+	resp, err := client.Cart.UpdateItems(context.Background(), CartItemRequestBody{
 		CartKey: "abc-123",
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "TEST-001", Quantity: 20},
@@ -203,7 +203,7 @@ func TestRemoveCartItemMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.RemoveCartItem(context.Background(), "abc-123", "TEST-001", "US", "USD")
+	resp, err := client.Cart.RemoveItem(context.Background(), "abc-123", "TEST-001", "US", "USD")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestInsertCartScheduleMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.InsertCartSchedule(context.Background(), ScheduleCartItemsRequestBody{
+	resp, err := client.Cart.InsertSchedule(context.Background(), ScheduleCartItemsRequestBody{
 		CartKey: "abc-123",
 		ScheduleCartItems: []ScheduleReleaseRequest{
 			{
@@ -270,7 +270,7 @@ func TestUpdateCartScheduleMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.UpdateCartSchedule(context.Background(), ScheduleCartItemsRequestBody{
+	resp, err := client.Cart.UpdateSchedule(context.Background(), ScheduleCartItemsRequestBody{
 		CartKey: "abc-123",
 		ScheduleCartItems: []ScheduleReleaseRequest{
 			{
@@ -307,7 +307,7 @@ func TestDeleteAllCartSchedulesMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	resp, err := client.DeleteAllCartSchedules(context.Background(), "abc-123")
+	resp, err := client.Cart.DeleteAllSchedules(context.Background(), "abc-123")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestCartErrorHandlingMock(t *testing.T) {
 	})
 
 	client := newTestClient(t, handler)
-	_, err := client.GetCart(context.Background(), "bad-key", "", "")
+	_, err := client.Cart.Get(context.Background(), "bad-key", "", "")
 	if err == nil {
 		t.Fatal("expected error for invalid cart key")
 	}
@@ -342,8 +342,8 @@ func TestCartNotCachedMock(t *testing.T) {
 	client := newTestClientCached(t, handler)
 
 	// Make two identical requests
-	_, _ = client.GetCart(context.Background(), "abc-123", "US", "USD")
-	_, _ = client.GetCart(context.Background(), "abc-123", "US", "USD")
+	_, _ = client.Cart.Get(context.Background(), "abc-123", "US", "USD")
+	_, _ = client.Cart.Get(context.Background(), "abc-123", "US", "USD")
 
 	// Both should hit the server (no caching for cart)
 	if callCount != 2 {
@@ -435,7 +435,7 @@ func TestIntegrationCartInsertAndGet(t *testing.T) {
 	ctx := context.Background()
 
 	// Insert items
-	insertResp, err := client.InsertCartItems(ctx, CartItemRequestBody{
+	insertResp, err := client.Cart.InsertItems(ctx, CartItemRequestBody{
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 1},
 		},
@@ -448,7 +448,7 @@ func TestIntegrationCartInsertAndGet(t *testing.T) {
 	}
 
 	// Get the cart
-	getResp, err := client.GetCart(ctx, insertResp.CartKey, "", "")
+	getResp, err := client.Cart.Get(ctx, insertResp.CartKey, "", "")
 	if err != nil {
 		t.Fatalf("GetCart failed: %v", err)
 	}
@@ -470,7 +470,7 @@ func TestIntegrationCartUpdateItems(t *testing.T) {
 	ctx := context.Background()
 
 	// Insert initial item
-	insertResp, err := client.InsertCartItems(ctx, CartItemRequestBody{
+	insertResp, err := client.Cart.InsertItems(ctx, CartItemRequestBody{
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 1},
 		},
@@ -480,7 +480,7 @@ func TestIntegrationCartUpdateItems(t *testing.T) {
 	}
 
 	// Update quantity
-	_, err = client.UpdateCartItems(ctx, CartItemRequestBody{
+	_, err = client.Cart.UpdateItems(ctx, CartItemRequestBody{
 		CartKey: insertResp.CartKey,
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 5},
@@ -504,7 +504,7 @@ func TestIntegrationCartRemoveItem(t *testing.T) {
 	ctx := context.Background()
 
 	// Insert item
-	insertResp, err := client.InsertCartItems(ctx, CartItemRequestBody{
+	insertResp, err := client.Cart.InsertItems(ctx, CartItemRequestBody{
 		CartItems: []CartItemRequest{
 			{MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 1},
 		},
@@ -514,7 +514,7 @@ func TestIntegrationCartRemoveItem(t *testing.T) {
 	}
 
 	// Remove the item
-	_, err = client.RemoveCartItem(ctx, insertResp.CartKey, "595-TMS320F28335PGFA", "", "")
+	_, err = client.Cart.RemoveItem(ctx, insertResp.CartKey, "595-TMS320F28335PGFA", "", "")
 	if err != nil {
 		t.Fatalf("RemoveCartItem failed: %v", err)
 	}

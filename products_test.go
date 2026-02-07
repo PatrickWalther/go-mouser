@@ -56,7 +56,7 @@ func TestKeywordSearchBasic(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	result, err := client.KeywordSearch(ctx, SearchOptions{
+	result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
 		Records: 5,
 	})
@@ -100,7 +100,7 @@ func TestPartNumberSearch(t *testing.T) {
 	defer cancel()
 
 	// Search for a common IC that likely exists
-	result, err := client.PartNumberSearch(ctx, PartNumberSearchOptions{
+	result, err := client.Search.PartNumberSearch(ctx, PartNumberSearchOptions{
 		PartNumber: "LM386",
 		Records:    5,
 	})
@@ -134,7 +134,7 @@ func TestManufacturerSearch(t *testing.T) {
 	defer cancel()
 
 	// First get manufacturer list to use a real manufacturer
-	mfrList, err := client.GetManufacturerList(ctx)
+	mfrList, err := client.Search.ManufacturerList(ctx)
 	if err != nil || len(mfrList.ManufacturerList) == 0 {
 		t.Skip("could not get manufacturer list, skipping test")
 	}
@@ -142,7 +142,7 @@ func TestManufacturerSearch(t *testing.T) {
 	// Use the first manufacturer found
 	mfrName := mfrList.ManufacturerList[0].ManufacturerName
 
-	result, err := client.KeywordAndManufacturerSearch(ctx, KeywordAndManufacturerSearchOptions{
+	result, err := client.Search.KeywordAndManufacturerSearch(ctx, KeywordAndManufacturerSearchOptions{
 		Keyword:          "resistor",
 		ManufacturerName: mfrName,
 		Records:          5,
@@ -172,7 +172,7 @@ func TestCachingBetweenSearches(t *testing.T) {
 	defer cancel()
 
 	// First call - hits real API
-	result1, err := client.KeywordSearch(ctx, SearchOptions{
+	result1, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "capacitor",
 		Records: 3,
 	})
@@ -181,7 +181,7 @@ func TestCachingBetweenSearches(t *testing.T) {
 	}
 
 	// Second call - should be cached
-	result2, err := client.KeywordSearch(ctx, SearchOptions{
+	result2, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "capacitor",
 		Records: 3,
 	})
@@ -209,7 +209,7 @@ func TestGetManufacturerList(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	result, err := client.GetManufacturerList(ctx)
+	result, err := client.Search.ManufacturerList(ctx)
 
 	if err != nil {
 		t.Fatalf("get manufacturer list failed: %v", err)
@@ -251,7 +251,7 @@ func TestMultipleSearchTypes(t *testing.T) {
 	defer cancel()
 
 	// Keyword search
-	result1, err := client.KeywordSearch(ctx, SearchOptions{
+	result1, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "diode",
 		Records: 3,
 	})
@@ -263,7 +263,7 @@ func TestMultipleSearchTypes(t *testing.T) {
 	}
 
 	// Part number search
-	result2, err := client.PartNumberSearch(ctx, PartNumberSearchOptions{
+	result2, err := client.Search.PartNumberSearch(ctx, PartNumberSearchOptions{
 		PartNumber: "1N4148",
 		Records:    3,
 	})
@@ -275,7 +275,7 @@ func TestMultipleSearchTypes(t *testing.T) {
 	}
 
 	// Manufacturer list
-	result3, err := client.GetManufacturerList(ctx)
+	result3, err := client.Search.ManufacturerList(ctx)
 	if err != nil {
 		t.Errorf("get manufacturer list failed: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestContextTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
 
-	result, err := client.KeywordSearch(ctx, SearchOptions{
+	result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "test",
 	})
 
@@ -326,7 +326,7 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	result, err := client.KeywordSearch(ctx, SearchOptions{
+	result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
 	})
 
@@ -355,7 +355,7 @@ func TestRateLimitingWithMultipleRequests(t *testing.T) {
 
 	// Make a few requests (should not exceed default rate limits)
 	for i := 0; i < 2; i++ {
-		_, err := client.KeywordSearch(ctx, SearchOptions{
+		_, err := client.Search.KeywordSearch(ctx, SearchOptions{
 			Keyword: "capacitor",
 			Records: 2,
 		})
@@ -388,7 +388,7 @@ func TestSearchWithLowRecords(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	result, err := client.KeywordSearch(ctx, SearchOptions{
+	result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "transistor",
 		Records: 1,
 	})
@@ -424,7 +424,7 @@ func TestKeywordSearchCommonComponents(t *testing.T) {
 	keywords := []string{"resistor", "capacitor", "inductor"}
 
 	for _, keyword := range keywords {
-		result, err := client.KeywordSearch(ctx, SearchOptions{
+		result, err := client.Search.KeywordSearch(ctx, SearchOptions{
 			Keyword: keyword,
 			Records: 2,
 		})
@@ -453,7 +453,7 @@ func TestPartNumberAndManufacturerSearch(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	result, err := client.PartNumberAndManufacturerSearch(ctx, PartNumberAndManufacturerSearchOptions{
+	result, err := client.Search.PartNumberAndManufacturerSearch(ctx, PartNumberAndManufacturerSearchOptions{
 		PartNumber:       "RN73H",
 		ManufacturerName: "Vishay",
 	})
@@ -485,7 +485,7 @@ func TestGetPartDetails(t *testing.T) {
 	defer cancel()
 
 	// First get a part key via keyword search
-	searchResult, err := client.KeywordSearch(ctx, SearchOptions{
+	searchResult, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
 		Records: 1,
 	})
@@ -504,7 +504,7 @@ func TestGetPartDetails(t *testing.T) {
 	}
 
 	// Now fetch details
-	details, err := client.GetPartDetails(ctx, partNumber)
+	details, err := client.Search.PartDetails(ctx, partNumber)
 	if err != nil {
 		t.Logf("GetPartDetails returned error (may be expected): %v", err)
 		return
@@ -529,7 +529,7 @@ func TestGetPartDetailsWithManufacturer(t *testing.T) {
 	defer cancel()
 
 	// First get a part via search
-	searchResult, err := client.KeywordSearch(ctx, SearchOptions{
+	searchResult, err := client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "capacitor",
 		Records: 1,
 	})
@@ -553,7 +553,7 @@ func TestGetPartDetailsWithManufacturer(t *testing.T) {
 		t.Skip("manufacturer is empty")
 	}
 
-	details, err := client.GetPartDetailsWithManufacturer(ctx, partNumber, mfr)
+	details, err := client.Search.PartDetailsWithManufacturer(ctx, partNumber, mfr)
 	if err != nil {
 		t.Logf("GetPartDetailsWithManufacturer returned error (may be expected): %v", err)
 		return
@@ -578,7 +578,7 @@ func TestSearchAll(t *testing.T) {
 	defer cancel()
 
 	var partCount int
-	err = client.SearchAll(ctx, SearchOptions{
+	err = client.Search.All(ctx, SearchOptions{
 		Keyword: "resistor",
 		Records: 3,
 	}, func(part Part) bool {

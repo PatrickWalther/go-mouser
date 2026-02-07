@@ -5,8 +5,10 @@ import (
 	"net/url"
 )
 
-// GetOrderHistoryByDateFilter retrieves order history filtered by a predefined date filter.
-func (c *Client) GetOrderHistoryByDateFilter(ctx context.Context, dateFilter DateFilterType) (*OrderHistoryResponse, error) {
+// ByDateFilter retrieves order history filtered by a predefined date filter.
+func (s *OrderHistoryService) ByDateFilter(ctx context.Context, dateFilter DateFilterType) (*OrderHistoryResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("dateFilter", string(dateFilter))
 
@@ -22,9 +24,11 @@ func (c *Client) GetOrderHistoryByDateFilter(ctx context.Context, dateFilter Dat
 	return &resp, nil
 }
 
-// GetOrderHistoryByDateRange retrieves order history within a specific date range.
+// ByDateRange retrieves order history within a specific date range.
 // Dates should be in the format expected by the Mouser API (e.g. "2025-01-01").
-func (c *Client) GetOrderHistoryByDateRange(ctx context.Context, startDate, endDate string) (*OrderHistoryResponse, error) {
+func (s *OrderHistoryService) ByDateRange(ctx context.Context, startDate, endDate string) (*OrderHistoryResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("startDate", startDate)
 	query.Set("endDate", endDate)
@@ -41,8 +45,10 @@ func (c *Client) GetOrderHistoryByDateRange(ctx context.Context, startDate, endD
 	return &resp, nil
 }
 
-// GetOrderBySalesOrderNumber retrieves order details by sales order number.
-func (c *Client) GetOrderBySalesOrderNumber(ctx context.Context, salesOrderNumber string) (*OrderDetailResponse, error) {
+// BySalesOrderNumber retrieves order details by sales order number.
+func (s *OrderHistoryService) BySalesOrderNumber(ctx context.Context, salesOrderNumber string) (*OrderDetailResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("salesOrderNumber", salesOrderNumber)
 
@@ -58,8 +64,10 @@ func (c *Client) GetOrderBySalesOrderNumber(ctx context.Context, salesOrderNumbe
 	return &resp, nil
 }
 
-// GetOrderByWebOrderNumber retrieves order details by web order number.
-func (c *Client) GetOrderByWebOrderNumber(ctx context.Context, webOrderNumber string) (*OrderDetailResponse, error) {
+// ByWebOrderNumber retrieves order details by web order number.
+func (s *OrderHistoryService) ByWebOrderNumber(ctx context.Context, webOrderNumber string) (*OrderDetailResponse, error) {
+	c := s.client
+
 	query := url.Values{}
 	query.Set("webOrderNumber", webOrderNumber)
 

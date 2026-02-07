@@ -558,7 +558,7 @@ func TestRateLimitingWithRealAPI(t *testing.T) {
 	// Make requests and verify rate limiting doesn't block
 	initialStats := client.RateLimitStats()
 
-	_, err = client.KeywordSearch(ctx, SearchOptions{
+	_, err = client.Search.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
 		Records: 2,
 	})
