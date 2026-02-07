@@ -129,10 +129,16 @@ func TestPartNumberSearchOnlySendsExpectedFields(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var raw map[string]json.RawMessage
-		json.Unmarshal(body, &raw)
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+			return
+		}
 
 		var inner map[string]json.RawMessage
-		json.Unmarshal(raw["SearchByPartRequest"], &inner)
+		if err := json.Unmarshal(raw["SearchByPartRequest"], &inner); err != nil {
+			t.Errorf("unmarshal SearchByPartRequest: %v", err)
+			return
+		}
 
 		// Only mouserPartNumber and partSearchOptions should be present
 		allowed := map[string]bool{"mouserPartNumber": true, "partSearchOptions": true}
@@ -341,17 +347,6 @@ func TestSearchAllByManufacturerEmptyMock(t *testing.T) {
 
 // --- Mock tests for existing search endpoints ---
 
-func searchResponseJSON(n int) string {
-	parts := ""
-	for i := 0; i < n; i++ {
-		if i > 0 {
-			parts += ","
-		}
-		parts += `{"MouserPartNumber":"MOCK-` + string(rune('0'+i)) + `","Description":"Mock Part"}`
-	}
-	return `{"Errors":[],"SearchResults":{"NumberOfResult":` + json.Number(string(rune('0'+n))).String() + `,"Parts":[` + parts + `]}}`
-}
-
 // TestKeywordSearchMock tests KeywordSearch without an API key.
 func TestKeywordSearchMock(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -364,13 +359,22 @@ func TestKeywordSearchMock(t *testing.T) {
 
 		body, _ := io.ReadAll(r.Body)
 		var raw map[string]json.RawMessage
-		json.Unmarshal(body, &raw)
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+			return
+		}
 
 		var inner map[string]json.RawMessage
-		json.Unmarshal(raw["SearchByKeywordRequest"], &inner)
+		if err := json.Unmarshal(raw["SearchByKeywordRequest"], &inner); err != nil {
+			t.Errorf("unmarshal SearchByKeywordRequest: %v", err)
+			return
+		}
 
 		var keyword string
-		json.Unmarshal(inner["keyword"], &keyword)
+		if err := json.Unmarshal(inner["keyword"], &keyword); err != nil {
+			t.Errorf("unmarshal keyword: %v", err)
+			return
+		}
 		if keyword != "capacitor" {
 			t.Errorf("expected keyword=capacitor, got %s", keyword)
 		}
@@ -417,10 +421,16 @@ func TestPartNumberSearchMock(t *testing.T) {
 
 		body, _ := io.ReadAll(r.Body)
 		var raw map[string]json.RawMessage
-		json.Unmarshal(body, &raw)
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+			return
+		}
 
 		var inner map[string]json.RawMessage
-		json.Unmarshal(raw["SearchByPartRequest"], &inner)
+		if err := json.Unmarshal(raw["SearchByPartRequest"], &inner); err != nil {
+			t.Errorf("unmarshal SearchByPartRequest: %v", err)
+			return
+		}
 
 		// Verify bug fix: partSearchOptions not searchOptions
 		if _, ok := inner["partSearchOptions"]; !ok {
@@ -462,13 +472,22 @@ func TestKeywordAndManufacturerSearchMock(t *testing.T) {
 
 		body, _ := io.ReadAll(r.Body)
 		var raw map[string]json.RawMessage
-		json.Unmarshal(body, &raw)
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+			return
+		}
 
 		var inner map[string]json.RawMessage
-		json.Unmarshal(raw["SearchByKeywordMfrNameRequest"], &inner)
+		if err := json.Unmarshal(raw["SearchByKeywordMfrNameRequest"], &inner); err != nil {
+			t.Errorf("unmarshal SearchByKeywordMfrNameRequest: %v", err)
+			return
+		}
 
 		var mfr string
-		json.Unmarshal(inner["manufacturerName"], &mfr)
+		if err := json.Unmarshal(inner["manufacturerName"], &mfr); err != nil {
+			t.Errorf("unmarshal manufacturerName: %v", err)
+			return
+		}
 		if mfr != "Texas Instruments" {
 			t.Errorf("expected manufacturerName=Texas Instruments, got %s", mfr)
 		}
@@ -503,13 +522,22 @@ func TestPartNumberAndManufacturerSearchMock(t *testing.T) {
 
 		body, _ := io.ReadAll(r.Body)
 		var raw map[string]json.RawMessage
-		json.Unmarshal(body, &raw)
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Errorf("unmarshal body: %v", err)
+			return
+		}
 
 		var inner map[string]json.RawMessage
-		json.Unmarshal(raw["SearchByPartMfrNameRequest"], &inner)
+		if err := json.Unmarshal(raw["SearchByPartMfrNameRequest"], &inner); err != nil {
+			t.Errorf("unmarshal SearchByPartMfrNameRequest: %v", err)
+			return
+		}
 
 		var mfr string
-		json.Unmarshal(inner["manufacturerName"], &mfr)
+		if err := json.Unmarshal(inner["manufacturerName"], &mfr); err != nil {
+			t.Errorf("unmarshal manufacturerName: %v", err)
+			return
+		}
 		if mfr != "Vishay" {
 			t.Errorf("expected manufacturerName=Vishay, got %s", mfr)
 		}
