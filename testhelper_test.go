@@ -2,6 +2,8 @@ package mouser
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -143,4 +145,45 @@ func TestDoRequestWithQueryPost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+}
+
+// TestPartNumberSearchSendsPartSearchOptions verifies the JSON body contains
+// "partSearchOptions" (not "searchOptions") for the part number search endpoint.
+func TestPartNumberSearchSendsPartSearchOptions(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Fatalf("failed to parse request body: %v", err)
+		}
+
+		var inner map[string]json.RawMessage
+		if err := json.Unmarshal(raw["SearchByPartRequest"], &inner); err != nil {
+			t.Fatalf("failed to parse SearchByPartRequest: %v", err)
+		}
+
+		if _, ok := inner["partSearchOptions"]; !ok {
+			t.Errorf("expected 'partSearchOptions' in request body, got keys: %v", inner)
+		}
+		if _, ok := inner["searchOptions"]; ok {
+			t.Errorf("unexpected 'searchOptions' key — should be 'partSearchOptions'")
+		}
+
+		// Verify the value
+		var val string
+		if err := json.Unmarshal(inner["partSearchOptions"], &val); err == nil {
+			if val != "Exact" {
+				t.Errorf("expected partSearchOptions=Exact, got %s", val)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":0,"Parts":[]}}`))
+	})
+
+	client := newTestClient(t, handler)
+	_, _ = client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+		PartNumber:       "TEST-123",
+		PartSearchOption: PartSearchOptionExact,
+	})
 }

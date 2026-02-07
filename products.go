@@ -75,7 +75,7 @@ func (c *Client) PartNumberSearch(ctx context.Context, opts PartNumberSearchOpti
 			MouserPartNumber:             opts.PartNumber,
 			Records:                      opts.Records,
 			StartingRecord:               opts.StartingRecord,
-			SearchOptions:                string(opts.PartSearchOption),
+			PartSearchOptions:            string(opts.PartSearchOption),
 			SearchWithYourSignUpLanguage: opts.SearchWithYourSignUpLanguage,
 		},
 	}

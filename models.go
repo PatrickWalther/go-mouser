@@ -291,7 +291,7 @@ type searchByPartRequest struct {
 	MouserPartNumber             string `json:"mouserPartNumber"`
 	Records                      int    `json:"records"`
 	StartingRecord               int    `json:"startingRecord"`
-	SearchOptions                string `json:"searchOptions,omitempty"`
+	PartSearchOptions            string `json:"partSearchOptions,omitempty"`
 	SearchWithYourSignUpLanguage bool   `json:"searchWithYourSignUpLanguage"`
 }
 
