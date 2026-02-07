@@ -34,13 +34,13 @@ type PartNumberSearchOptions struct {
 	// Multiple part numbers can be separated by pipe (|), max 10.
 	PartNumber string
 
-	// Records is the maximum number of results to return (max 50).
+	// Deprecated: Records is not supported by the V1 part number search API and is ignored.
 	Records int
 
-	// StartingRecord is the starting index for pagination (0-based).
+	// Deprecated: StartingRecord is not supported by the V1 part number search API and is ignored.
 	StartingRecord int
 
-	// SearchWithYourSignUpLanguage uses the language from your Mouser account.
+	// Deprecated: SearchWithYourSignUpLanguage is not supported by the V1 part number search API and is ignored.
 	SearchWithYourSignUpLanguage bool
 
 	// PartSearchOption controls matching. Valid values: None, Exact
@@ -288,11 +288,8 @@ type partNumberSearchRequest struct {
 }
 
 type searchByPartRequest struct {
-	MouserPartNumber             string `json:"mouserPartNumber"`
-	Records                      int    `json:"records"`
-	StartingRecord               int    `json:"startingRecord"`
-	PartSearchOptions            string `json:"partSearchOptions,omitempty"`
-	SearchWithYourSignUpLanguage bool   `json:"searchWithYourSignUpLanguage"`
+	MouserPartNumber  string `json:"mouserPartNumber"`
+	PartSearchOptions string `json:"partSearchOptions,omitempty"`
 }
 
 // keywordAndManufacturerSearchRequest is the request format for V2 keyword and manufacturer search.

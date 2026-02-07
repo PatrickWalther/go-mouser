@@ -187,3 +187,46 @@ func TestPartNumberSearchSendsPartSearchOptions(t *testing.T) {
 		PartSearchOption: PartSearchOptionExact,
 	})
 }
+
+// TestPartNumberSearchOnlySendsExpectedFields verifies that only mouserPartNumber
+// and partSearchOptions are sent in the request body (no records, startingRecord, etc.).
+func TestPartNumberSearchOnlySendsExpectedFields(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+
+		var inner map[string]json.RawMessage
+		json.Unmarshal(raw["SearchByPartRequest"], &inner)
+
+		// Only mouserPartNumber and partSearchOptions should be present
+		allowed := map[string]bool{"mouserPartNumber": true, "partSearchOptions": true}
+		for key := range inner {
+			if !allowed[key] {
+				t.Errorf("unexpected field %q in SearchByPartRequest", key)
+			}
+		}
+
+		if _, ok := inner["records"]; ok {
+			t.Error("records field should not be sent in part number search request")
+		}
+		if _, ok := inner["startingRecord"]; ok {
+			t.Error("startingRecord field should not be sent in part number search request")
+		}
+		if _, ok := inner["searchWithYourSignUpLanguage"]; ok {
+			t.Error("searchWithYourSignUpLanguage field should not be sent in part number search request")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":0,"Parts":[]}}`))
+	})
+
+	client := newTestClient(t, handler)
+	_, _ = client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+		PartNumber:                   "TEST-123",
+		Records:                      10,
+		StartingRecord:               5,
+		SearchWithYourSignUpLanguage: true,
+		PartSearchOption:             PartSearchOptionExact,
+	})
+}

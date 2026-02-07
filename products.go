@@ -62,21 +62,10 @@ func (c *Client) KeywordSearch(ctx context.Context, opts SearchOptions) (*Search
 // PartNumberSearch searches for parts by part number.
 // This uses the V1-compatible endpoint. For manufacturer-specific search, use PartNumberAndManufacturerSearch.
 func (c *Client) PartNumberSearch(ctx context.Context, opts PartNumberSearchOptions) (*SearchResult, error) {
-	// Validate and set defaults
-	if opts.Records <= 0 {
-		opts.Records = 10
-	}
-	if opts.Records > MaxRecords {
-		opts.Records = MaxRecords
-	}
-
 	req := partNumberSearchRequest{
 		SearchByPartRequest: searchByPartRequest{
-			MouserPartNumber:             opts.PartNumber,
-			Records:                      opts.Records,
-			StartingRecord:               opts.StartingRecord,
-			PartSearchOptions:            string(opts.PartSearchOption),
-			SearchWithYourSignUpLanguage: opts.SearchWithYourSignUpLanguage,
+			MouserPartNumber:  opts.PartNumber,
+			PartSearchOptions: string(opts.PartSearchOption),
 		},
 	}
 
