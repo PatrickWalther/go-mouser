@@ -230,3 +230,74 @@ func TestPartNumberSearchOnlySendsExpectedFields(t *testing.T) {
 		PartSearchOption:             PartSearchOptionExact,
 	})
 }
+
+// TestPartDeserializationNewFields verifies all new Part fields deserialize correctly.
+func TestPartDeserializationNewFields(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {
+				"NumberOfResult": 1,
+				"Parts": [{
+					"MouserPartNumber": "TEST-001",
+					"ActualMfrName": "Actual Corp",
+					"AvailableOnOrder": "500",
+					"PID": "PID-123",
+					"REACH-SVHC": ["Lead", "Cadmium"],
+					"RTM": "rtm-val",
+					"SField": "sfield-val",
+					"SalesMaximumOrderQty": "10000",
+					"SurchargeMessages": [
+						{"code": "SC01", "message": "Environmental surcharge"}
+					],
+					"VNum": "vnum-val",
+					"ProductAttributes": [
+						{"AttributeName": "Size", "AttributeValue": "0402", "AttributeCost": "0.01"}
+					]
+				}]
+			}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: "test", Records: 1})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Parts) != 1 {
+		t.Fatalf("expected 1 part, got %d", len(result.Parts))
+	}
+
+	p := result.Parts[0]
+	if p.ActualMfrName != "Actual Corp" {
+		t.Errorf("ActualMfrName = %q, want %q", p.ActualMfrName, "Actual Corp")
+	}
+	if p.AvailableOnOrder != "500" {
+		t.Errorf("AvailableOnOrder = %q, want %q", p.AvailableOnOrder, "500")
+	}
+	if p.PID != "PID-123" {
+		t.Errorf("PID = %q, want %q", p.PID, "PID-123")
+	}
+	if len(p.REACH_SVHC) != 2 || p.REACH_SVHC[0] != "Lead" || p.REACH_SVHC[1] != "Cadmium" {
+		t.Errorf("REACH_SVHC = %v, want [Lead Cadmium]", p.REACH_SVHC)
+	}
+	if p.RTM != "rtm-val" {
+		t.Errorf("RTM = %q, want %q", p.RTM, "rtm-val")
+	}
+	if p.SField != "sfield-val" {
+		t.Errorf("SField = %q, want %q", p.SField, "sfield-val")
+	}
+	if p.SalesMaximumOrderQty != "10000" {
+		t.Errorf("SalesMaximumOrderQty = %q, want %q", p.SalesMaximumOrderQty, "10000")
+	}
+	if len(p.SurchargeMessages) != 1 || p.SurchargeMessages[0].Code != "SC01" || p.SurchargeMessages[0].Message != "Environmental surcharge" {
+		t.Errorf("SurchargeMessages = %v, unexpected", p.SurchargeMessages)
+	}
+	if p.VNum != "vnum-val" {
+		t.Errorf("VNum = %q, want %q", p.VNum, "vnum-val")
+	}
+	if len(p.ProductAttributes) != 1 || p.ProductAttributes[0].AttributeCost != "0.01" {
+		t.Errorf("ProductAttributes[0].AttributeCost = %q, want %q", p.ProductAttributes[0].AttributeCost, "0.01")
+	}
+}

@@ -193,6 +193,33 @@ type Part struct {
 
 	// RestrictionMessage contains any restriction messages.
 	RestrictionMessage string `json:"RestrictionMessage"`
+
+	// ActualMfrName is the actual manufacturer name.
+	ActualMfrName string `json:"ActualMfrName"`
+
+	// AvailableOnOrder is the total quantity available on order.
+	AvailableOnOrder string `json:"AvailableOnOrder"`
+
+	// PID is the product identifier.
+	PID string `json:"PID"`
+
+	// REACH_SVHC contains REACH Substances of Very High Concern.
+	REACH_SVHC []string `json:"REACH-SVHC"`
+
+	// RTM is the RTM field.
+	RTM string `json:"RTM"`
+
+	// SField is the S field.
+	SField string `json:"SField"`
+
+	// SalesMaximumOrderQty is the maximum order quantity for sales.
+	SalesMaximumOrderQty string `json:"SalesMaximumOrderQty"`
+
+	// SurchargeMessages contains surcharge messages for the part.
+	SurchargeMessages []SurchargeMessage `json:"SurchargeMessages"`
+
+	// VNum is the V number.
+	VNum string `json:"VNum"`
 }
 
 // AvailabilityOnOrderObject represents a scheduled on-order availability.
@@ -229,6 +256,18 @@ type ProductAttribute struct {
 
 	// AttributeValue is the value of the attribute.
 	AttributeValue string `json:"AttributeValue"`
+
+	// AttributeCost is the cost associated with this attribute.
+	AttributeCost string `json:"AttributeCost"`
+}
+
+// SurchargeMessage represents a surcharge message associated with a part.
+type SurchargeMessage struct {
+	// Code is the surcharge code.
+	Code string `json:"code"`
+
+	// Message is the surcharge message text.
+	Message string `json:"message"`
 }
 
 // UnitWeight represents the unit weight.
