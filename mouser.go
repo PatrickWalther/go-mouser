@@ -1,7 +1,16 @@
-// Package mouser provides a Go client for the Mouser Electronics API.
+// Package mouser provides a Go client for the Mouser Electronics API
+// with 100% endpoint coverage.
 //
-// The Mouser API allows you to search for electronic components, retrieve
-// product information, and access pricing and availability data.
+// The Mouser API allows you to search for electronic components, manage
+// shopping carts, place orders, and query order history.
+//
+// # API Coverage
+//
+// This client covers all four Mouser API groups:
+//   - Search API (5 endpoints): keyword search, part number search, manufacturer filtering, manufacturer list
+//   - Cart API (8 endpoints): create, update, remove items, manage scheduled releases
+//   - Order History API (4 endpoints): query by date filter, date range, or order number
+//   - Order API (7 endpoints): create orders, query options, get currencies and countries
 //
 // # Authentication
 //
@@ -23,6 +32,8 @@
 //   - Search results: 5 minutes
 //   - Part details: 10 minutes
 //   - Manufacturer list: 24 hours
+//   - Currencies and countries: 24 hours
+//   - Cart, order, and order history operations are never cached
 //
 // Caching can be disabled with WithoutCache() or customized with WithCacheConfig().
 //
@@ -38,6 +49,7 @@
 //   - KeywordSearch, PartNumberSearch: V1-compatible endpoints
 //   - KeywordAndManufacturerSearch, PartNumberAndManufacturerSearch: V2 endpoints
 //   - GetManufacturerList: V2 endpoint
+//   - Cart, Order History, and Order endpoints: V1 endpoints
 //
 // # Example Usage
 //
@@ -45,6 +57,7 @@
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
+//	defer client.Close()
 //
 //	// Search by keyword
 //	result, err := client.KeywordSearch(ctx, mouser.SearchOptions{

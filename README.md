@@ -2,11 +2,10 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/PatrickWalther/go-mouser.svg)](https://pkg.go.dev/github.com/PatrickWalther/go-mouser)
 [![Go Report Card](https://goreportcard.com/badge/github.com/PatrickWalther/go-mouser)](https://goreportcard.com/report/github.com/PatrickWalther/go-mouser)
-[![Coverage](https://img.shields.io/badge/coverage-80.2%25-brightgreen)](https://github.com/PatrickWalther/go-mouser)
 [![Tests](https://github.com/PatrickWalther/go-mouser/actions/workflows/test.yml/badge.svg)](https://github.com/PatrickWalther/go-mouser/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Go client library for the [Mouser Electronics](https://www.mouser.com) API.
+A Go client library for the [Mouser Electronics](https://www.mouser.com) API with **100% endpoint coverage**.
 
 ## Requirements
 
@@ -16,8 +15,10 @@ A Go client library for the [Mouser Electronics](https://www.mouser.com) API.
 
 ## Features
 
-- Keyword and part number search (V1 & V2 APIs)
-- Manufacturer filtering and list retrieval
+- **Search API** — Keyword, part number, manufacturer filtering, and list retrieval (V1 & V2)
+- **Cart API** — Create, update, remove items, and manage scheduled releases
+- **Order History API** — Query orders by date filter, date range, or order number
+- **Order API** — Create orders, query options, get currencies and countries
 - In-memory response caching with configurable TTL
 - Automatic retries with exponential backoff
 - Rate limiting (30 requests/minute, 1000 requests/day)
@@ -50,6 +51,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
+    defer client.Close()
 
     // Search for parts by keyword
     result, err := client.KeywordSearch(context.Background(), mouser.SearchOptions{
@@ -73,6 +75,7 @@ func main() {
 ```go
 // Basic client
 client, err := mouser.NewClient(os.Getenv("MOUSER_API_KEY"))
+defer client.Close()
 
 // With custom options
 client, err := mouser.NewClient(
@@ -101,7 +104,7 @@ for _, part := range result.Parts {
 ```go
 result, err := client.PartNumberSearch(ctx, mouser.PartNumberSearchOptions{
     PartNumber: "STM32F407VGT6",
-    Records: 1,
+    PartSearchOption: mouser.PartSearchOptionExact,
 })
 
 if len(result.Parts) > 0 {
@@ -113,7 +116,7 @@ if len(result.Parts) > 0 {
 ### Search with Manufacturer Filter
 
 ```go
-result, err := client.KeywordAndManufacturerSearch(ctx, 
+result, err := client.KeywordAndManufacturerSearch(ctx,
     mouser.KeywordAndManufacturerSearchOptions{
         Keyword: "microcontroller",
         ManufacturerName: "STMicroelectronics",
@@ -124,11 +127,81 @@ result, err := client.KeywordAndManufacturerSearch(ctx,
 ### Iterate All Results
 
 ```go
+// V1 keyword search pagination
 err := client.SearchAll(ctx, mouser.SearchOptions{
     Keyword: "resistor",
 }, func(part mouser.Part) bool {
     fmt.Println(part.Description)
     return true  // continue iterating
+})
+
+// V2 keyword+manufacturer pagination
+err := client.SearchAllByManufacturer(ctx,
+    mouser.KeywordAndManufacturerSearchOptions{
+        Keyword: "capacitor",
+        ManufacturerName: "Murata",
+    }, func(part mouser.Part) bool {
+        fmt.Println(part.Description)
+        return true
+    })
+```
+
+### Cart Operations
+
+```go
+// Insert items into a cart
+resp, err := client.InsertCartItems(ctx, mouser.CartItemRequestBody{
+    CartItems: []mouser.CartItemRequest{
+        {MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 5},
+    },
+}, "US", "USD")
+
+// Get cart contents
+cart, err := client.GetCart(ctx, resp.CartKey, "US", "USD")
+
+// Update item quantity
+_, err = client.UpdateCartItems(ctx, mouser.CartItemRequestBody{
+    CartKey: resp.CartKey,
+    CartItems: []mouser.CartItemRequest{
+        {MouserPartNumber: "595-TMS320F28335PGFA", Quantity: 10},
+    },
+}, "US", "USD")
+
+// Remove an item
+_, err = client.RemoveCartItem(ctx, resp.CartKey, "595-TMS320F28335PGFA", "US", "USD")
+```
+
+### Order History
+
+```go
+// Query by date filter
+history, err := client.GetOrderHistoryByDateFilter(ctx, mouser.DateFilterThisMonth)
+
+// Query by date range
+history, err := client.GetOrderHistoryByDateRange(ctx, "2025-01-01", "2025-06-30")
+
+// Get order details
+detail, err := client.GetOrderBySalesOrderNumber(ctx, "12345678")
+```
+
+### Order Operations
+
+```go
+// Get available currencies and countries
+currencies, err := client.GetCurrencies(ctx, "US")
+countries, err := client.GetCountries(ctx, "")
+
+// Query order options for a cart
+options, err := client.QueryOrderOptions(ctx, mouser.OrderOptionsRequest{
+    CartKey: cartKey,
+    CurrencyCode: "USD",
+})
+
+// Create an order (use SubmitOrder: false to validate first)
+order, err := client.CreateOrder(ctx, mouser.CreateOrderRequest{
+    CartKey:      cartKey,
+    CurrencyCode: "USD",
+    SubmitOrder:  false,
 })
 ```
 
@@ -151,6 +224,8 @@ client, _ := mouser.NewClient(apiKey,
         SearchTTL: 5 * time.Minute,
         DetailsTTL: 10 * time.Minute,
         ManufacturersTTL: 24 * time.Hour,
+        CurrenciesTTL: 24 * time.Hour,
+        CountriesTTL: 24 * time.Hour,
     }),
     mouser.WithRetryConfig(mouser.RetryConfig{
         MaxRetries: 3,
@@ -168,20 +243,20 @@ client, _ := mouser.NewClient(apiKey,
 
 The client caches responses to reduce API usage:
 
+| Data | Default TTL | Cached? |
+|------|-------------|---------|
+| Search results | 5 minutes | Yes |
+| Part details | 10 minutes | Yes |
+| Manufacturer list | 24 hours | Yes |
+| Currencies | 24 hours | Yes |
+| Countries | 24 hours | Yes |
+| Cart operations | — | No (mutations) |
+| Order operations | — | No (mutations) |
+| Order history | — | No (user-specific) |
+
 ```go
-// Default cache configuration
-client := mouser.NewClient(apiKey)
-
 // Disable caching
-client := mouser.NewClient(apiKey, mouser.WithoutCache())
-
-// Custom cache
-client := mouser.NewClient(apiKey,
-    mouser.WithCacheConfig(mouser.CacheConfig{
-        SearchTTL: 10 * time.Minute,
-        DetailsTTL: 20 * time.Minute,
-    }),
-)
+client, _ := mouser.NewClient(apiKey, mouser.WithoutCache())
 
 // Clear cache
 client.ClearCache()
@@ -192,7 +267,6 @@ client.ClearCache()
 The client enforces Mouser API rate limits:
 
 ```go
-// Check rate limit stats
 stats := client.RateLimitStats()
 fmt.Printf("Minute remaining: %d\n", stats.MinuteRemaining)
 fmt.Printf("Daily remaining: %d\n", stats.DailyRemaining)
@@ -209,7 +283,7 @@ if err != nil {
     if errors.Is(err, mouser.ErrRateLimitExceeded) {
         // Rate limited
     }
-    
+
     if mouserErr, ok := err.(*mouser.MouserError); ok {
         fmt.Printf("HTTP %d: %s\n", mouserErr.StatusCode, mouserErr.Message)
     }
@@ -218,13 +292,58 @@ if err != nil {
 
 ## API Coverage
 
-| Endpoint | Method |
-|----------|--------|
-| `/search/keyword` | POST |
-| `/search/partnumber` | POST |
-| `/search/keywordandmanufacturer` | POST |
-| `/search/partnumberandmanufacturer` | POST |
-| `/search/manufacturerlist` | GET |
+### Search API (5 endpoints)
+
+| Endpoint | Method | Function |
+|----------|--------|----------|
+| `/search/keyword` | POST | `KeywordSearch` |
+| `/search/partnumber` | POST | `PartNumberSearch` |
+| `/search/keywordandmanufacturer` | POST | `KeywordAndManufacturerSearch` |
+| `/search/partnumberandmanufacturer` | POST | `PartNumberAndManufacturerSearch` |
+| `/search/manufacturerlist` | GET | `GetManufacturerList` |
+
+### Cart API (8 endpoints)
+
+| Endpoint | Method | Function |
+|----------|--------|----------|
+| `/cart` | GET | `GetCart` |
+| `/cart` | POST | `UpdateCart` |
+| `/cart/items/insert` | POST | `InsertCartItems` |
+| `/cart/items/update` | POST | `UpdateCartItems` |
+| `/cart/item/remove` | POST | `RemoveCartItem` |
+| `/cart/insert/schedule` | POST | `InsertCartSchedule` |
+| `/cart/update/schedule` | POST | `UpdateCartSchedule` |
+| `/cart/deleteall/schedule` | POST | `DeleteAllCartSchedules` |
+
+### Order History API (4 endpoints)
+
+| Endpoint | Method | Function |
+|----------|--------|----------|
+| `/orderhistory/ByDateFilter` | GET | `GetOrderHistoryByDateFilter` |
+| `/orderhistory/ByDateRange` | GET | `GetOrderHistoryByDateRange` |
+| `/orderhistory/salesOrderNumber` | GET | `GetOrderBySalesOrderNumber` |
+| `/orderhistory/webOrderNumber` | GET | `GetOrderByWebOrderNumber` |
+
+### Order API (7 endpoints)
+
+| Endpoint | Method | Function |
+|----------|--------|----------|
+| `/order/options/query` | POST | `QueryOrderOptions` |
+| `/order/currencies` | GET | `GetCurrencies` |
+| `/order/countries` | GET | `GetCountries` |
+| `/order` | POST | `CreateOrder` |
+| `/order/CreateFromOrder` | POST | `CreateOrderFromPrevious` |
+| `/order/{orderNumber}` | GET | `GetOrderDetails` |
+| `/order/item/CreateCartFromOrder` | POST | `CreateCartFromOrder` |
+
+### Convenience Methods
+
+| Function | Description |
+|----------|-------------|
+| `GetPartDetails` | Exact part number lookup (single part) |
+| `GetPartDetailsWithManufacturer` | Part lookup with manufacturer filter |
+| `SearchAll` | Paginated keyword search iterator |
+| `SearchAllByManufacturer` | Paginated keyword+manufacturer iterator |
 
 ## Testing
 
@@ -238,7 +357,7 @@ cp .env.example .env
 ### Run Tests
 
 ```bash
-# Run all tests (API tests skip if MOUSER_API_KEY not set)
+# Run all tests (integration tests skip if MOUSER_API_KEY not set)
 go test -v ./...
 
 # Run with API key from environment
@@ -247,21 +366,24 @@ MOUSER_API_KEY=your-key go test -v ./...
 
 ### Test Coverage
 
-- **131 total tests** organized by concern (cache, search, rate limiting, retry, errors)
-- **12 tests** use real Mouser API endpoints
-- **119 tests** run without API key
-- Real API tests automatically skip if `MOUSER_API_KEY` environment variable not set
+- **195 total tests** across 10 test files
+- **~170 mock tests** run without API key (httptest-based)
+- **~25 integration tests** use real Mouser API endpoints (auto-skip without key)
 
 ### Test Files
 
-| File | Tests | Type |
-|------|-------|------|
-| client_test.go | 21 | Unit + API |
-| products_test.go | 13 | Unit + API |
-| cache_test.go | 19 | Unit only |
-| ratelimit_test.go | 24 | Unit + API |
-| retry_test.go | 20 | Unit only |
-| errors_test.go | 34 | Unit + API |
+| File | Type |
+|------|------|
+| testhelper_test.go | Mock server infrastructure + search mock tests |
+| client_test.go | Client configuration unit + integration tests |
+| products_test.go | Search integration tests |
+| cart_test.go | Cart mock + integration tests |
+| orderhistory_test.go | Order history mock + integration tests |
+| order_test.go | Order mock + integration tests |
+| cache_test.go | Cache unit tests |
+| ratelimit_test.go | Rate limiter unit + integration tests |
+| retry_test.go | Retry logic unit tests |
+| errors_test.go | Error handling unit tests |
 
 ## Performance
 
