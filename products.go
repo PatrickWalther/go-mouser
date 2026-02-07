@@ -315,3 +315,33 @@ func (c *Client) SearchAll(ctx context.Context, opts SearchOptions, callback fun
 
 	return nil
 }
+
+// SearchAllByManufacturer iterates through all pages of keyword+manufacturer search results,
+// calling the callback for each part. The callback should return true to continue iterating,
+// or false to stop. This uses the V2 PageNumber-based pagination.
+func (c *Client) SearchAllByManufacturer(ctx context.Context, opts KeywordAndManufacturerSearchOptions, callback func(Part) bool) error {
+	opts.Records = MaxRecords
+	opts.PageNumber = 1
+
+	for {
+		result, err := c.KeywordAndManufacturerSearch(ctx, opts)
+		if err != nil {
+			return err
+		}
+
+		for _, part := range result.Parts {
+			if !callback(part) {
+				return nil
+			}
+		}
+
+		// Check if we've retrieved all results
+		if len(result.Parts) < MaxRecords {
+			break
+		}
+
+		opts.PageNumber++
+	}
+
+	return nil
+}

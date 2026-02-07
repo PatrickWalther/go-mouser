@@ -301,3 +301,105 @@ func TestPartDeserializationNewFields(t *testing.T) {
 		t.Errorf("ProductAttributes[0].AttributeCost = %q, want %q", p.ProductAttributes[0].AttributeCost, "0.01")
 	}
 }
+
+// TestSearchAllByManufacturerMock tests multi-page iteration.
+func TestSearchAllByManufacturerMock(t *testing.T) {
+	page := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page++
+		w.Header().Set("Content-Type", "application/json")
+
+		var parts string
+		if page == 1 {
+			// Return MaxRecords (50) to signal more pages
+			items := make([]string, MaxRecords)
+			for i := range items {
+				items[i] = `{"MouserPartNumber": "P` + string(rune('A'+i%26)) + `"}`
+			}
+			parts = ""
+			for i, item := range items {
+				if i > 0 {
+					parts += ","
+				}
+				parts += item
+			}
+		} else {
+			// Second page: fewer than MaxRecords, signals end
+			parts = `{"MouserPartNumber": "LAST"}`
+		}
+
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":51,"Parts":[` + parts + `]}}`))
+	})
+
+	client := newTestClient(t, handler)
+
+	var collected []string
+	err := client.SearchAllByManufacturer(context.Background(),
+		KeywordAndManufacturerSearchOptions{
+			Keyword:          "test",
+			ManufacturerName: "TestMfr",
+		},
+		func(p Part) bool {
+			collected = append(collected, p.MouserPartNumber)
+			return true
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(collected) != 51 {
+		t.Errorf("expected 51 parts, got %d", len(collected))
+	}
+	if page != 2 {
+		t.Errorf("expected 2 pages fetched, got %d", page)
+	}
+}
+
+// TestSearchAllByManufacturerEarlyStopMock tests callback returning false.
+func TestSearchAllByManufacturerEarlyStopMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":100,"Parts":[
+			{"MouserPartNumber":"P1"},{"MouserPartNumber":"P2"},{"MouserPartNumber":"P3"}
+		]}}`))
+	})
+
+	client := newTestClient(t, handler)
+
+	count := 0
+	err := client.SearchAllByManufacturer(context.Background(),
+		KeywordAndManufacturerSearchOptions{Keyword: "test", ManufacturerName: "TestMfr"},
+		func(p Part) bool {
+			count++
+			return count < 2 // stop after first
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected callback called 2 times (stop on 2nd), got %d", count)
+	}
+}
+
+// TestSearchAllByManufacturerEmptyMock tests empty results.
+func TestSearchAllByManufacturerEmptyMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":0,"Parts":[]}}`))
+	})
+
+	client := newTestClient(t, handler)
+
+	count := 0
+	err := client.SearchAllByManufacturer(context.Background(),
+		KeywordAndManufacturerSearchOptions{Keyword: "nonexistent", ManufacturerName: "Nobody"},
+		func(p Part) bool {
+			count++
+			return true
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 callback calls for empty results, got %d", count)
+	}
+}
