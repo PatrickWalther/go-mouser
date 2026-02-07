@@ -269,7 +269,7 @@ The client enforces Mouser API rate limits:
 ```go
 stats := client.RateLimitStats()
 fmt.Printf("Minute remaining: %d\n", stats.MinuteRemaining)
-fmt.Printf("Daily remaining: %d\n", stats.DailyRemaining)
+fmt.Printf("Daily remaining: %d\n", stats.DayRemaining)
 ```
 
 ## Error Handling

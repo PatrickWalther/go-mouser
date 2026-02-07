@@ -48,8 +48,8 @@ func TestNewRateLimiter(t *testing.T) {
 	if stats.MinuteRemaining != 30 {
 		t.Errorf("expected 30 minute tokens, got %d", stats.MinuteRemaining)
 	}
-	if stats.DailyRemaining != 1000 {
-		t.Errorf("expected 1000 daily tokens, got %d", stats.DailyRemaining)
+	if stats.DayRemaining != 1000 {
+		t.Errorf("expected 1000 daily tokens, got %d", stats.DayRemaining)
 	}
 }
 
@@ -61,8 +61,8 @@ func TestRateLimiterDefaultLimits(t *testing.T) {
 	if stats.MinuteRemaining != DefaultRequestsPerMinute {
 		t.Errorf("expected minute limit %d, got %d", DefaultRequestsPerMinute, stats.MinuteRemaining)
 	}
-	if stats.DailyRemaining != DefaultRequestsPerDay {
-		t.Errorf("expected daily limit %d, got %d", DefaultRequestsPerDay, stats.DailyRemaining)
+	if stats.DayRemaining != DefaultRequestsPerDay {
+		t.Errorf("expected daily limit %d, got %d", DefaultRequestsPerDay, stats.DayRemaining)
 	}
 }
 
@@ -142,8 +142,8 @@ func TestRateLimiterStats(t *testing.T) {
 	if stats2.MinuteRemaining != 8 {
 		t.Errorf("expected 8 minute remaining after 2 requests, got %d", stats2.MinuteRemaining)
 	}
-	if stats2.DailyRemaining != 98 {
-		t.Errorf("expected 98 daily remaining, got %d", stats2.DailyRemaining)
+	if stats2.DayRemaining != 98 {
+		t.Errorf("expected 98 daily remaining, got %d", stats2.DayRemaining)
 	}
 }
 
@@ -205,35 +205,46 @@ func TestRateLimiterUpdateFromResponseNegative(t *testing.T) {
 	}
 }
 
-// TestRateLimiterRemainingMinute tests RemainingMinute method.
-func TestRateLimiterRemainingMinute(t *testing.T) {
+// TestRateLimiterStatsNewFields tests new expanded Stats fields.
+func TestRateLimiterStatsNewFields(t *testing.T) {
 	rl := NewRateLimiter(10, 100)
 
-	remaining := rl.RemainingMinute()
-	if remaining != 10 {
-		t.Errorf("expected 10 remaining, got %d", remaining)
+	stats := rl.Stats()
+	if stats.MinuteLimit != 10 {
+		t.Errorf("expected MinuteLimit 10, got %d", stats.MinuteLimit)
+	}
+	if stats.DayLimit != 100 {
+		t.Errorf("expected DayLimit 100, got %d", stats.DayLimit)
+	}
+	if stats.MinuteUsed != 0 {
+		t.Errorf("expected MinuteUsed 0, got %d", stats.MinuteUsed)
+	}
+	if stats.DayUsed != 0 {
+		t.Errorf("expected DayUsed 0, got %d", stats.DayUsed)
+	}
+	if stats.MinuteResetAt.IsZero() {
+		t.Error("expected MinuteResetAt to be set")
+	}
+	if stats.DayResetAt.IsZero() {
+		t.Error("expected DayResetAt to be set")
 	}
 
+	// Make some requests
 	_, _ = rl.TryAcquire()
-	remaining = rl.RemainingMinute()
-	if remaining != 9 {
-		t.Errorf("expected 9 remaining after 1 request, got %d", remaining)
-	}
-}
-
-// TestRateLimiterRemainingDaily tests RemainingDaily method.
-func TestRateLimiterRemainingDaily(t *testing.T) {
-	rl := NewRateLimiter(10, 100)
-
-	remaining := rl.RemainingDaily()
-	if remaining != 100 {
-		t.Errorf("expected 100 remaining, got %d", remaining)
-	}
-
 	_, _ = rl.TryAcquire()
-	remaining = rl.RemainingDaily()
-	if remaining != 99 {
-		t.Errorf("expected 99 remaining after 1 request, got %d", remaining)
+
+	stats2 := rl.Stats()
+	if stats2.MinuteUsed != 2 {
+		t.Errorf("expected MinuteUsed 2, got %d", stats2.MinuteUsed)
+	}
+	if stats2.DayUsed != 2 {
+		t.Errorf("expected DayUsed 2, got %d", stats2.DayUsed)
+	}
+	if stats2.MinuteRemaining != 8 {
+		t.Errorf("expected MinuteRemaining 8, got %d", stats2.MinuteRemaining)
+	}
+	if stats2.DayRemaining != 98 {
+		t.Errorf("expected DayRemaining 98, got %d", stats2.DayRemaining)
 	}
 }
 
@@ -344,9 +355,9 @@ func TestRateLimiterStatsValues(t *testing.T) {
 		t.Errorf("MinuteRemaining %d out of bounds", stats.MinuteRemaining)
 	}
 
-	// DailyRemaining should be between 0 and DailyLimit
-	if stats.DailyRemaining < 0 || stats.DailyRemaining > 1000 {
-		t.Errorf("DailyRemaining %d out of bounds", stats.DailyRemaining)
+	// DayRemaining should be between 0 and DayLimit
+	if stats.DayRemaining < 0 || stats.DayRemaining > 1000 {
+		t.Errorf("DayRemaining %d out of bounds", stats.DayRemaining)
 	}
 
 	// BlockedUntil should be in the future or zero
@@ -472,8 +483,8 @@ func TestRateLimitingWithRealAPI(t *testing.T) {
 			initialStats.MinuteRemaining, afterStats.MinuteRemaining)
 	}
 
-	if afterStats.DailyRemaining >= initialStats.DailyRemaining {
+	if afterStats.DayRemaining >= initialStats.DayRemaining {
 		t.Logf("Warning: daily limit not decremented (before: %d, after: %d)",
-			initialStats.DailyRemaining, afterStats.DailyRemaining)
+			initialStats.DayRemaining, afterStats.DayRemaining)
 	}
 }

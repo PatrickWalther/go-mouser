@@ -168,34 +168,16 @@ func (r *RateLimiter) UpdateFromResponse(retryAfterSeconds int) {
 	}
 }
 
-// RemainingMinute returns the number of requests remaining in the current minute.
-func (r *RateLimiter) RemainingMinute() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	now := time.Now()
-	if now.Sub(r.lastMinuteReset) >= time.Minute {
-		return r.requestsPerMinute
-	}
-	return r.minuteTokens
-}
-
-// RemainingDaily returns the number of requests remaining today.
-func (r *RateLimiter) RemainingDaily() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	now := time.Now()
-	if now.Sub(r.lastDayReset) >= 24*time.Hour {
-		return r.requestsPerDay
-	}
-	return r.dailyTokens
-}
-
-// Stats returns current rate limit statistics.
+// RateLimitStats contains current rate limit statistics.
 type RateLimitStats struct {
+	MinuteLimit     int
+	MinuteUsed      int
 	MinuteRemaining int
-	DailyRemaining  int
+	MinuteResetAt   time.Time
+	DayLimit        int
+	DayUsed         int
+	DayRemaining    int
+	DayResetAt      time.Time
 	BlockedUntil    time.Time
 }
 
@@ -204,9 +186,31 @@ func (r *RateLimiter) Stats() RateLimitStats {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	now := time.Now()
+
+	minuteRemaining := r.minuteTokens
+	minuteResetAt := r.lastMinuteReset.Add(time.Minute)
+	if now.Sub(r.lastMinuteReset) >= time.Minute {
+		minuteRemaining = r.requestsPerMinute
+		minuteResetAt = now.Add(time.Minute)
+	}
+
+	dayRemaining := r.dailyTokens
+	dayResetAt := r.lastDayReset.Add(24 * time.Hour)
+	if now.Sub(r.lastDayReset) >= 24*time.Hour {
+		dayRemaining = r.requestsPerDay
+		dayResetAt = now.Add(24 * time.Hour)
+	}
+
 	return RateLimitStats{
-		MinuteRemaining: r.minuteTokens,
-		DailyRemaining:  r.dailyTokens,
+		MinuteLimit:     r.requestsPerMinute,
+		MinuteUsed:      r.requestsPerMinute - minuteRemaining,
+		MinuteRemaining: minuteRemaining,
+		MinuteResetAt:   minuteResetAt,
+		DayLimit:        r.requestsPerDay,
+		DayUsed:         r.requestsPerDay - dayRemaining,
+		DayRemaining:    dayRemaining,
+		DayResetAt:      dayResetAt,
 		BlockedUntil:    r.blockedUntil,
 	}
 }

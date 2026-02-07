@@ -216,8 +216,8 @@ func TestRateLimitStats(t *testing.T) {
 	if stats.MinuteRemaining <= 0 {
 		t.Errorf("expected positive minute remaining, got %d", stats.MinuteRemaining)
 	}
-	if stats.DailyRemaining <= 0 {
-		t.Errorf("expected positive daily remaining, got %d", stats.DailyRemaining)
+	if stats.DayRemaining <= 0 {
+		t.Errorf("expected positive daily remaining, got %d", stats.DayRemaining)
 	}
 }
 
@@ -425,8 +425,8 @@ func TestIntegrationClientSetupWithRealAPI(t *testing.T) {
 
 	// Basic stats check
 	stats := client.RateLimitStats()
-	if stats.MinuteRemaining <= 0 || stats.DailyRemaining <= 0 {
+	if stats.MinuteRemaining <= 0 || stats.DayRemaining <= 0 {
 		t.Logf("Warning: rate limits may be exhausted (minute: %d, daily: %d)",
-			stats.MinuteRemaining, stats.DailyRemaining)
+			stats.MinuteRemaining, stats.DayRemaining)
 	}
 }

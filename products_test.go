@@ -369,8 +369,8 @@ func TestRateLimitingWithMultipleRequests(t *testing.T) {
 	if stats.MinuteRemaining < 0 {
 		t.Errorf("expected non-negative minute remaining, got %d", stats.MinuteRemaining)
 	}
-	if stats.DailyRemaining < 0 {
-		t.Errorf("expected non-negative daily remaining, got %d", stats.DailyRemaining)
+	if stats.DayRemaining < 0 {
+		t.Errorf("expected non-negative daily remaining, got %d", stats.DayRemaining)
 	}
 }
 
