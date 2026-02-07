@@ -3,6 +3,7 @@ package mouser
 import (
 	"bufio"
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -245,6 +246,96 @@ func TestRateLimiterStatsNewFields(t *testing.T) {
 	}
 	if stats2.DayRemaining != 98 {
 		t.Errorf("expected DayRemaining 98, got %d", stats2.DayRemaining)
+	}
+}
+
+// TestAllowSuccess tests Allow allowing requests within limits.
+func TestAllowSuccess(t *testing.T) {
+	rl := NewRateLimiter(5, 100)
+
+	for i := 0; i < 5; i++ {
+		err := rl.Allow()
+		if err != nil {
+			t.Errorf("request %d should be allowed, got error: %v", i+1, err)
+		}
+	}
+}
+
+// TestAllowMinuteExceeded tests Allow when minute limit is exceeded.
+func TestAllowMinuteExceeded(t *testing.T) {
+	rl := NewRateLimiter(2, 100)
+
+	// Use up minute limit
+	_ = rl.Allow()
+	_ = rl.Allow()
+
+	// Next should fail with RateLimitError
+	err := rl.Allow()
+	if err == nil {
+		t.Fatal("expected error on 3rd request")
+	}
+
+	var rlErr *RateLimitError
+	if !errors.As(err, &rlErr) {
+		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.Type != "minute" {
+		t.Errorf("expected type 'minute', got %q", rlErr.Type)
+	}
+	if rlErr.Limit != 2 {
+		t.Errorf("expected limit 2, got %d", rlErr.Limit)
+	}
+	if !errors.Is(err, ErrRateLimitExceeded) {
+		t.Error("expected errors.Is to match ErrRateLimitExceeded")
+	}
+}
+
+// TestAllowDailyExceeded tests Allow when daily limit is exceeded.
+func TestAllowDailyExceeded(t *testing.T) {
+	rl := NewRateLimiter(100, 2) // High per-minute, low daily limit
+
+	_ = rl.Allow()
+	_ = rl.Allow()
+
+	err := rl.Allow()
+	if err == nil {
+		t.Fatal("expected error when daily limit exceeded")
+	}
+
+	var rlErr *RateLimitError
+	if !errors.As(err, &rlErr) {
+		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.Type != "day" {
+		t.Errorf("expected type 'day', got %q", rlErr.Type)
+	}
+	if rlErr.Limit != 2 {
+		t.Errorf("expected limit 2, got %d", rlErr.Limit)
+	}
+	if !errors.Is(err, ErrDailyLimitExceeded) {
+		t.Error("expected errors.Is to match ErrDailyLimitExceeded")
+	}
+}
+
+// TestAllowBlockedUntil tests Allow when server-indicated backoff is active.
+func TestAllowBlockedUntil(t *testing.T) {
+	rl := NewRateLimiter(10, 100)
+	rl.UpdateFromResponse(60)
+
+	err := rl.Allow()
+	if err == nil {
+		t.Fatal("expected error when blocked")
+	}
+
+	var rlErr *RateLimitError
+	if !errors.As(err, &rlErr) {
+		t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rlErr.Type != "minute" {
+		t.Errorf("expected type 'minute', got %q", rlErr.Type)
+	}
+	if !errors.Is(err, ErrRateLimitExceeded) {
+		t.Error("expected errors.Is to match ErrRateLimitExceeded")
 	}
 }
 

@@ -78,8 +78,8 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, query url
 // doOnce performs a single HTTP request attempt.
 // Returns (statusCode, retryAfterSeconds, error).
 func (c *Client) doOnce(ctx context.Context, method, path string, query url.Values, body interface{}, result interface{}) (int, int, error) {
-	// Wait for rate limiter
-	if err := c.rateLimiter.Wait(ctx); err != nil {
+	// Check rate limiter (non-blocking)
+	if err := c.rateLimiter.Allow(); err != nil {
 		return 0, 0, err
 	}
 

@@ -107,6 +107,62 @@ func (r *RateLimiter) Wait(ctx context.Context) error {
 	}
 }
 
+// Allow checks if a request is allowed and consumes a token if so.
+// Returns nil if the request is allowed, or a *RateLimitError if rate limited.
+func (r *RateLimiter) Allow() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	now := time.Now()
+
+	// Check server-indicated backoff
+	if now.Before(r.blockedUntil) {
+		return &RateLimitError{
+			Limit:     r.requestsPerMinute,
+			Remaining: 0,
+			ResetAt:   r.blockedUntil,
+			Type:      "minute",
+		}
+	}
+
+	// Reset minute tokens if a minute has passed
+	if now.Sub(r.lastMinuteReset) >= time.Minute {
+		r.minuteTokens = r.requestsPerMinute
+		r.lastMinuteReset = now
+	}
+
+	// Reset daily tokens if a day has passed
+	if now.Sub(r.lastDayReset) >= 24*time.Hour {
+		r.dailyTokens = r.requestsPerDay
+		r.lastDayReset = now
+	}
+
+	// Check daily limit
+	if r.dailyTokens <= 0 {
+		return &RateLimitError{
+			Limit:     r.requestsPerDay,
+			Remaining: 0,
+			ResetAt:   r.lastDayReset.Add(24 * time.Hour),
+			Type:      "day",
+		}
+	}
+
+	// Check minute limit
+	if r.minuteTokens <= 0 {
+		return &RateLimitError{
+			Limit:     r.requestsPerMinute,
+			Remaining: 0,
+			ResetAt:   r.lastMinuteReset.Add(time.Minute),
+			Type:      "minute",
+		}
+	}
+
+	r.minuteTokens--
+	r.dailyTokens--
+	return nil
+}
+
+// Deprecated: Use Allow instead.
 // TryAcquire attempts to acquire a rate limit token without blocking.
 // Returns true if successful, false if rate limited.
 func (r *RateLimiter) TryAcquire() (bool, error) {
