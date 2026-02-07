@@ -451,6 +451,68 @@ func TestMouserErrorNoMessage(t *testing.T) {
 	}
 }
 
+// TestRateLimitErrorMinute tests RateLimitError with minute type.
+func TestRateLimitErrorMinute(t *testing.T) {
+	resetAt := time.Now().Add(30 * time.Second)
+	err := &RateLimitError{
+		Limit:     30,
+		Remaining: 0,
+		ResetAt:   resetAt,
+		Type:      "minute",
+	}
+
+	errStr := err.Error()
+	if !contains(errStr, "minute") {
+		t.Errorf("expected error to contain 'minute': %s", errStr)
+	}
+	if !contains(errStr, "30") {
+		t.Errorf("expected error to contain limit: %s", errStr)
+	}
+}
+
+// TestRateLimitErrorDay tests RateLimitError with day type.
+func TestRateLimitErrorDay(t *testing.T) {
+	resetAt := time.Now().Add(12 * time.Hour)
+	err := &RateLimitError{
+		Limit:     1000,
+		Remaining: 0,
+		ResetAt:   resetAt,
+		Type:      "day",
+	}
+
+	errStr := err.Error()
+	if !contains(errStr, "day") {
+		t.Errorf("expected error to contain 'day': %s", errStr)
+	}
+	if !contains(errStr, "1000") {
+		t.Errorf("expected error to contain limit: %s", errStr)
+	}
+}
+
+// TestRateLimitErrorUnwrapMinute tests Unwrap for minute rate limit.
+func TestRateLimitErrorUnwrapMinute(t *testing.T) {
+	err := &RateLimitError{Type: "minute"}
+
+	if !errors.Is(err, ErrRateLimitExceeded) {
+		t.Error("expected minute RateLimitError to unwrap to ErrRateLimitExceeded")
+	}
+	if errors.Is(err, ErrDailyLimitExceeded) {
+		t.Error("expected minute RateLimitError to NOT match ErrDailyLimitExceeded")
+	}
+}
+
+// TestRateLimitErrorUnwrapDay tests Unwrap for day rate limit.
+func TestRateLimitErrorUnwrapDay(t *testing.T) {
+	err := &RateLimitError{Type: "day"}
+
+	if !errors.Is(err, ErrDailyLimitExceeded) {
+		t.Error("expected day RateLimitError to unwrap to ErrDailyLimitExceeded")
+	}
+	if errors.Is(err, ErrRateLimitExceeded) {
+		t.Error("expected day RateLimitError to NOT match ErrRateLimitExceeded")
+	}
+}
+
 // skipIfNoAPIKeyErrors skips test if MOUSER_API_KEY is not set
 func skipIfNoAPIKeyErrors(t *testing.T) {
 	errorsTestInit()

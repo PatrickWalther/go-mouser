@@ -3,6 +3,7 @@ package mouser
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 var (
@@ -91,6 +92,28 @@ func (e APIError) Error() string {
 		return fmt.Sprintf("mouser API error [%s]: %s", e.Code, e.Message)
 	}
 	return fmt.Sprintf("mouser API error: %s", e.Message)
+}
+
+// RateLimitError represents a rate limit error with details about the limit.
+type RateLimitError struct {
+	Limit     int       // The rate limit that was exceeded
+	Remaining int       // Remaining requests (typically 0)
+	ResetAt   time.Time // When the limit resets
+	Type      string    // "minute" or "day"
+}
+
+// Error implements the error interface.
+func (e *RateLimitError) Error() string {
+	return fmt.Sprintf("mouser: %s rate limit exceeded (limit: %d, resets at: %s)",
+		e.Type, e.Limit, e.ResetAt.Format(time.RFC3339))
+}
+
+// Unwrap returns the underlying sentinel error.
+func (e *RateLimitError) Unwrap() error {
+	if e.Type == "day" {
+		return ErrDailyLimitExceeded
+	}
+	return ErrRateLimitExceeded
 }
 
 // APIErrors represents a collection of API errors.
