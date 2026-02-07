@@ -120,6 +120,14 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	return c, nil
 }
 
+// Close releases resources held by the client.
+func (c *Client) Close() error {
+	if mc, ok := c.cache.(*MemoryCache); ok {
+		return mc.Close()
+	}
+	return nil
+}
+
 // RateLimiter returns the client's rate limiter.
 func (c *Client) RateLimiter() *RateLimiter {
 	return c.rateLimiter

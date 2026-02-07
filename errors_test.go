@@ -444,6 +444,7 @@ func TestRealAPIErrorHandling(t *testing.T) {
 
 	// Try searching with an invalid API key (will use a dummy one to trigger error)
 	testClient, _ := NewClient("invalid-key-that-should-fail")
+	defer testClient.Close()
 
 	result, err := testClient.KeywordSearch(ctx, SearchOptions{
 		Keyword: "resistor",
@@ -464,6 +465,7 @@ func TestContextTimeoutError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
+	defer client.Close()
 
 	// Very short timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)

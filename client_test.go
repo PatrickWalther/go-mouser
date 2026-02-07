@@ -42,6 +42,7 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client == nil {
 		t.Fatal("expected non-nil client")
@@ -90,6 +91,7 @@ func TestNewClientWithCustomHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.httpClient != customHTTPClient {
 		t.Error("expected same HTTP client instance")
@@ -107,6 +109,7 @@ func TestNewClientWithRetryConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.retryConfig.MaxRetries != 5 {
 		t.Errorf("expected max retries 5, got %d", client.retryConfig.MaxRetries)
@@ -120,6 +123,7 @@ func TestNewClientWithCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.cache == nil {
 		t.Fatal("expected non-nil cache")
@@ -136,6 +140,7 @@ func TestNewClientWithCacheDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.cacheConfig.Enabled {
 		t.Error("expected cache to be disabled")
@@ -148,6 +153,7 @@ func TestNewClientWithRetryDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.retryConfig.MaxRetries != 0 {
 		t.Errorf("expected max retries 0, got %d", client.retryConfig.MaxRetries)
@@ -161,6 +167,7 @@ func TestNewClientWithBaseURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.baseURL != customURL {
 		t.Errorf("expected base URL %s, got %s", customURL, client.baseURL)
@@ -174,6 +181,7 @@ func TestNewClientWithRateLimiter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.rateLimiter != limiter {
 		t.Error("expected same rate limiter instance")
@@ -192,6 +200,7 @@ func TestNewClientWithCacheConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.cacheConfig.SearchTTL != 10*time.Minute {
 		t.Errorf("expected search TTL 10m, got %v", client.cacheConfig.SearchTTL)
@@ -201,6 +210,7 @@ func TestNewClientWithCacheConfig(t *testing.T) {
 // TestRateLimitStats tests rate limit stats retrieval.
 func TestRateLimitStats(t *testing.T) {
 	client, _ := NewClient("test-key")
+	defer client.Close()
 
 	stats := client.RateLimitStats()
 	if stats.MinuteRemaining <= 0 {
@@ -214,6 +224,7 @@ func TestRateLimitStats(t *testing.T) {
 // TestClearCache tests cache clearing.
 func TestClearCache(t *testing.T) {
 	client, _ := NewClient("test-key")
+	defer client.Close()
 
 	// Should not panic
 	client.ClearCache()
@@ -228,6 +239,7 @@ func TestClearCache(t *testing.T) {
 // TestGetCached tests cache retrieval.
 func TestGetCached(t *testing.T) {
 	client, _ := NewClient("test-key")
+	defer client.Close()
 	cache := client.cache.(*MemoryCache)
 
 	key := "test:key"
@@ -248,6 +260,7 @@ func TestGetCached(t *testing.T) {
 // TestGetCachedDisabled tests that getCached returns nothing when cache is disabled.
 func TestGetCachedDisabled(t *testing.T) {
 	client, _ := NewClient("test-key", WithoutCache())
+	defer client.Close()
 
 	data, ok := client.getCached("test:key")
 	if ok {
@@ -262,6 +275,7 @@ func TestGetCachedDisabled(t *testing.T) {
 // TestSetCache tests cache storage.
 func TestSetCache(t *testing.T) {
 	client, _ := NewClient("test-key")
+	defer client.Close()
 	cache := client.cache.(*MemoryCache)
 
 	key := "test:key"
@@ -282,6 +296,7 @@ func TestSetCache(t *testing.T) {
 // TestSetCacheDisabled tests that setCache does nothing when cache is disabled.
 func TestSetCacheDisabled(t *testing.T) {
 	client, _ := NewClient("test-key", WithoutCache())
+	defer client.Close()
 
 	client.setCache("test:key", []byte("data"), 1*time.Minute)
 
@@ -297,6 +312,7 @@ func TestSetCacheDisabled(t *testing.T) {
 // TestDefaultTimeouts tests default HTTP client timeout.
 func TestDefaultTimeouts(t *testing.T) {
 	client, _ := NewClient("test-key")
+	defer client.Close()
 
 	if client.httpClient.Timeout != DefaultTimeout {
 		t.Errorf("expected timeout %v, got %v", DefaultTimeout, client.httpClient.Timeout)
@@ -306,6 +322,7 @@ func TestDefaultTimeouts(t *testing.T) {
 // TestBuildURL tests URL construction with API key.
 func TestBuildURL(t *testing.T) {
 	client, _ := NewClient("my-api-key")
+	defer client.Close()
 
 	url, err := client.buildURL("/search/keyword")
 	if err != nil {
@@ -324,6 +341,7 @@ func TestBuildURL(t *testing.T) {
 // TestBuildURLInvalidURL tests URL construction error handling.
 func TestBuildURLInvalidURL(t *testing.T) {
 	client, _ := NewClient("test-key", WithBaseURL("ht!tp://invalid"))
+	defer client.Close()
 
 	_, err := client.buildURL("/test")
 	if err == nil {
@@ -347,6 +365,7 @@ func TestNewClientAllOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	defer client.Close()
 
 	if client.httpClient != customHTTPClient {
 		t.Error("expected custom HTTP client")
@@ -369,6 +388,7 @@ func TestNewClientAllOptions(t *testing.T) {
 func TestRateLimiterGetter(t *testing.T) {
 	limiter := NewRateLimiter(50, 500)
 	client, _ := NewClient("test-key", WithRateLimiter(limiter))
+	defer client.Close()
 
 	retrieved := client.RateLimiter()
 	if retrieved != limiter {
@@ -393,6 +413,7 @@ func TestIntegrationClientSetupWithRealAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create client with real API key: %v", err)
 	}
+	defer client.Close()
 
 	if client == nil {
 		t.Fatal("expected non-nil client")

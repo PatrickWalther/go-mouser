@@ -8,7 +8,7 @@ import (
 // TestMemoryCacheSet tests basic cache set operation.
 func TestMemoryCacheSet(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	value := []byte("test value")
@@ -23,7 +23,7 @@ func TestMemoryCacheSet(t *testing.T) {
 // TestMemoryCacheGet tests basic cache get operation.
 func TestMemoryCacheGet(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	value := []byte("test value")
@@ -43,6 +43,7 @@ func TestMemoryCacheGet(t *testing.T) {
 // TestMemoryCacheGetMissing tests cache get for missing key.
 func TestMemoryCacheGetMissing(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
+	defer cache.Close()
 
 	_, ok := cache.Get("nonexistent")
 	if ok {
@@ -53,7 +54,7 @@ func TestMemoryCacheGetMissing(t *testing.T) {
 // TestMemoryCacheDelete tests cache delete operation.
 func TestMemoryCacheDelete(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	cache.Set(key, []byte("value"), 1*time.Minute)
@@ -77,7 +78,7 @@ func TestMemoryCacheDelete(t *testing.T) {
 // TestMemoryCacheTTL tests that expired entries are not returned.
 func TestMemoryCacheTTL(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	cache.Set(key, []byte("value"), 100*time.Millisecond)
@@ -100,7 +101,7 @@ func TestMemoryCacheTTL(t *testing.T) {
 // TestMemoryCacheDefaultTTL tests that default TTL is used when zero is passed.
 func TestMemoryCacheDefaultTTL(t *testing.T) {
 	cache := NewMemoryCache(100 * time.Millisecond)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	// Pass 0 as TTL to use default
@@ -124,7 +125,7 @@ func TestMemoryCacheDefaultTTL(t *testing.T) {
 // TestMemoryCacheMultipleEntries tests cache with multiple entries.
 func TestMemoryCacheMultipleEntries(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	entries := map[string][]byte{
 		"key1": []byte("value1"),
@@ -155,6 +156,7 @@ func TestMemoryCacheMultipleEntries(t *testing.T) {
 // TestMemoryCacheClear tests clearing all cache entries.
 func TestMemoryCacheClear(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
+	defer cache.Close()
 
 	// Add multiple entries
 	for i := 0; i < 5; i++ {
@@ -175,7 +177,7 @@ func TestMemoryCacheClear(t *testing.T) {
 // TestMemoryCacheSize tests the Size method.
 func TestMemoryCacheSize(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	if cache.Size() != 0 {
 		t.Errorf("expected initial cache size 0, got %d", cache.Size())
@@ -193,7 +195,7 @@ func TestMemoryCacheSize(t *testing.T) {
 // TestMemoryCacheOverwrite tests overwriting existing cache entries.
 func TestMemoryCacheOverwrite(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 
@@ -221,7 +223,7 @@ func TestMemoryCacheOverwrite(t *testing.T) {
 // TestMemoryCacheEmptyValue tests storing empty values.
 func TestMemoryCacheEmptyValue(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	key := "test:key"
 	cache.Set(key, []byte(""), 1*time.Minute)
@@ -325,7 +327,7 @@ func TestDefaultCacheConfig(t *testing.T) {
 // TestMemoryCacheCleanup tests that expired entries are cleaned up.
 func TestMemoryCacheCleanup(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	// Add an entry with very short TTL
 	cache.Set("short-lived", []byte("value"), 50*time.Millisecond)
@@ -349,7 +351,7 @@ func TestMemoryCacheCleanup(t *testing.T) {
 // TestMemoryCacheConcurrentAccess tests concurrent reads and writes.
 func TestMemoryCacheConcurrentAccess(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	// This test ensures no panics during concurrent access
 	done := make(chan bool, 3)
@@ -387,7 +389,7 @@ func TestMemoryCacheConcurrentAccess(t *testing.T) {
 // TestMemoryCacheLargeValue tests storing large values.
 func TestMemoryCacheLargeValue(t *testing.T) {
 	cache := NewMemoryCache(5 * time.Minute)
-	defer cache.Clear()
+	defer cache.Close()
 
 	// Create a large value (1MB)
 	largeValue := make([]byte, 1024*1024)

@@ -20,6 +20,7 @@ type MemoryCache struct {
 	mu      sync.RWMutex
 	entries map[string]*cacheEntry
 	ttl     time.Duration
+	done    chan struct{}
 }
 
 type cacheEntry struct {
@@ -32,6 +33,7 @@ func NewMemoryCache(defaultTTL time.Duration) *MemoryCache {
 	c := &MemoryCache{
 		entries: make(map[string]*cacheEntry),
 		ttl:     defaultTTL,
+		done:    make(chan struct{}),
 	}
 	go c.cleanupLoop()
 	return c
@@ -82,9 +84,20 @@ func (c *MemoryCache) cleanupLoop() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		c.cleanup()
+	for {
+		select {
+		case <-ticker.C:
+			c.cleanup()
+		case <-c.done:
+			return
+		}
 	}
+}
+
+// Close stops the cleanup goroutine and releases resources.
+func (c *MemoryCache) Close() error {
+	close(c.done)
+	return nil
 }
 
 func (c *MemoryCache) cleanup() {
