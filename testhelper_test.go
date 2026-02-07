@@ -403,3 +403,355 @@ func TestSearchAllByManufacturerEmptyMock(t *testing.T) {
 		t.Errorf("expected 0 callback calls for empty results, got %d", count)
 	}
 }
+
+// --- Mock tests for existing search endpoints ---
+
+func searchResponseJSON(n int) string {
+	parts := ""
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			parts += ","
+		}
+		parts += `{"MouserPartNumber":"MOCK-` + string(rune('0'+i)) + `","Description":"Mock Part"}`
+	}
+	return `{"Errors":[],"SearchResults":{"NumberOfResult":` + json.Number(string(rune('0'+n))).String() + `,"Parts":[` + parts + `]}}`
+}
+
+// TestKeywordSearchMock tests KeywordSearch without an API key.
+func TestKeywordSearchMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/search/keyword" {
+			t.Errorf("expected path /search/keyword, got %s", r.URL.Path)
+		}
+
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+
+		var inner map[string]json.RawMessage
+		json.Unmarshal(raw["SearchByKeywordRequest"], &inner)
+
+		var keyword string
+		json.Unmarshal(inner["keyword"], &keyword)
+		if keyword != "capacitor" {
+			t.Errorf("expected keyword=capacitor, got %s", keyword)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {
+				"NumberOfResult": 2,
+				"Parts": [
+					{"MouserPartNumber": "CAP-001", "Description": "Ceramic Capacitor"},
+					{"MouserPartNumber": "CAP-002", "Description": "Electrolytic Capacitor"}
+				]
+			}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.KeywordSearch(context.Background(), SearchOptions{
+		Keyword:      "capacitor",
+		Records:      10,
+		SearchOption: SearchOptionInStock,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.NumberOfResult != 2 {
+		t.Errorf("expected 2 results, got %d", result.NumberOfResult)
+	}
+	if len(result.Parts) != 2 {
+		t.Errorf("expected 2 parts, got %d", len(result.Parts))
+	}
+}
+
+// TestPartNumberSearchMock tests PartNumberSearch (verifies bug fix from Phase 1).
+func TestPartNumberSearchMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/search/partnumber" {
+			t.Errorf("expected path /search/partnumber, got %s", r.URL.Path)
+		}
+
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+
+		var inner map[string]json.RawMessage
+		json.Unmarshal(raw["SearchByPartRequest"], &inner)
+
+		// Verify bug fix: partSearchOptions not searchOptions
+		if _, ok := inner["partSearchOptions"]; !ok {
+			t.Error("missing partSearchOptions in request")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {
+				"NumberOfResult": 1,
+				"Parts": [{"MouserPartNumber": "LM386N-1", "ManufacturerPartNumber": "LM386N-1/NOPB"}]
+			}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.PartNumberSearch(context.Background(), PartNumberSearchOptions{
+		PartNumber:       "LM386",
+		PartSearchOption: PartSearchOptionExact,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.NumberOfResult != 1 {
+		t.Errorf("expected 1 result, got %d", result.NumberOfResult)
+	}
+}
+
+// TestKeywordAndManufacturerSearchMock tests V2 keyword+manufacturer search.
+func TestKeywordAndManufacturerSearchMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/search/keywordandmanufacturer" {
+			t.Errorf("expected path /search/keywordandmanufacturer, got %s", r.URL.Path)
+		}
+
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+
+		var inner map[string]json.RawMessage
+		json.Unmarshal(raw["SearchByKeywordMfrNameRequest"], &inner)
+
+		var mfr string
+		json.Unmarshal(inner["manufacturerName"], &mfr)
+		if mfr != "Texas Instruments" {
+			t.Errorf("expected manufacturerName=Texas Instruments, got %s", mfr)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {"NumberOfResult": 1, "Parts": [{"MouserPartNumber": "TI-001"}]}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.KeywordAndManufacturerSearch(context.Background(), KeywordAndManufacturerSearchOptions{
+		Keyword:          "microcontroller",
+		ManufacturerName: "Texas Instruments",
+		Records:          10,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.NumberOfResult != 1 {
+		t.Errorf("expected 1 result, got %d", result.NumberOfResult)
+	}
+}
+
+// TestPartNumberAndManufacturerSearchMock tests V2 part number+manufacturer search.
+func TestPartNumberAndManufacturerSearchMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search/partnumberandmanufacturer" {
+			t.Errorf("expected path /search/partnumberandmanufacturer, got %s", r.URL.Path)
+		}
+
+		body, _ := io.ReadAll(r.Body)
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+
+		var inner map[string]json.RawMessage
+		json.Unmarshal(raw["SearchByPartMfrNameRequest"], &inner)
+
+		var mfr string
+		json.Unmarshal(inner["manufacturerName"], &mfr)
+		if mfr != "Vishay" {
+			t.Errorf("expected manufacturerName=Vishay, got %s", mfr)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {"NumberOfResult": 1, "Parts": [{"MouserPartNumber": "V-001"}]}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.PartNumberAndManufacturerSearch(context.Background(), PartNumberAndManufacturerSearchOptions{
+		PartNumber:       "RN73H",
+		ManufacturerName: "Vishay",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.NumberOfResult != 1 {
+		t.Errorf("expected 1 result, got %d", result.NumberOfResult)
+	}
+}
+
+// TestGetManufacturerListMock tests GetManufacturerList without an API key.
+func TestGetManufacturerListMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/search/manufacturerlist" {
+			t.Errorf("expected path /search/manufacturerlist, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"MouserManufacturerList": {
+				"Count": 3,
+				"ManufacturerList": [
+					{"ManufacturerName": "Texas Instruments"},
+					{"ManufacturerName": "STMicroelectronics"},
+					{"ManufacturerName": "Microchip"}
+				]
+			}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	result, err := client.GetManufacturerList(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Count != 3 {
+		t.Errorf("expected Count=3, got %d", result.Count)
+	}
+	if len(result.ManufacturerList) != 3 {
+		t.Errorf("expected 3 manufacturers, got %d", len(result.ManufacturerList))
+	}
+}
+
+// TestGetPartDetailsMock tests GetPartDetails without an API key.
+func TestGetPartDetailsMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"Errors": [],
+			"SearchResults": {
+				"NumberOfResult": 1,
+				"Parts": [{
+					"MouserPartNumber": "STM32F407VGT6",
+					"ManufacturerPartNumber": "STM32F407VGT6",
+					"Manufacturer": "STMicroelectronics",
+					"Description": "ARM Microcontroller",
+					"PriceBreaks": [{"Quantity": 1, "Price": "$15.00", "Currency": "USD"}]
+				}]
+			}
+		}`))
+	})
+
+	client := newTestClient(t, handler)
+	part, err := client.GetPartDetails(context.Background(), "STM32F407VGT6")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if part.MouserPartNumber != "STM32F407VGT6" {
+		t.Errorf("expected part number STM32F407VGT6, got %s", part.MouserPartNumber)
+	}
+	if len(part.PriceBreaks) != 1 {
+		t.Errorf("expected 1 price break, got %d", len(part.PriceBreaks))
+	}
+}
+
+// TestGetPartDetailsNotFoundMock tests GetPartDetails with no results.
+func TestGetPartDetailsNotFoundMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":0,"Parts":[]}}`))
+	})
+
+	client := newTestClient(t, handler)
+	_, err := client.GetPartDetails(context.Background(), "NONEXISTENT-PART")
+	if err == nil {
+		t.Fatal("expected error for not found part")
+	}
+}
+
+// TestSearchAllMock tests the SearchAll paginated iterator with mock data.
+func TestSearchAllMock(t *testing.T) {
+	page := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page++
+		w.Header().Set("Content-Type", "application/json")
+
+		if page == 1 {
+			// Return MaxRecords to signal more pages
+			parts := ""
+			for i := 0; i < MaxRecords; i++ {
+				if i > 0 {
+					parts += ","
+				}
+				parts += `{"MouserPartNumber":"P-` + string(rune('A'+i%26)) + `"}`
+			}
+			_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":55,"Parts":[` + parts + `]}}`))
+		} else {
+			_, _ = w.Write([]byte(`{"Errors":[],"SearchResults":{"NumberOfResult":55,"Parts":[
+				{"MouserPartNumber":"P-LAST1"},
+				{"MouserPartNumber":"P-LAST2"},
+				{"MouserPartNumber":"P-LAST3"},
+				{"MouserPartNumber":"P-LAST4"},
+				{"MouserPartNumber":"P-LAST5"}
+			]}}`))
+		}
+	})
+
+	client := newTestClient(t, handler)
+
+	var collected int
+	err := client.SearchAll(context.Background(), SearchOptions{Keyword: "test"}, func(p Part) bool {
+		collected++
+		return true
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if collected != 55 {
+		t.Errorf("expected 55 parts, got %d", collected)
+	}
+	if page != 2 {
+		t.Errorf("expected 2 pages, got %d", page)
+	}
+}
+
+// TestSearchAPIErrorMock tests that API errors are properly returned.
+func TestSearchAPIErrorMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Errors":[{"Id":1,"Code":"InvalidKeyword","Message":"Keyword is required"}],"SearchResults":{"NumberOfResult":0,"Parts":[]}}`))
+	})
+
+	client := newTestClient(t, handler)
+	_, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: ""})
+	if err == nil {
+		t.Fatal("expected error for API error response")
+	}
+}
+
+// TestSearchHTTPErrorMock tests that HTTP errors are properly returned.
+func TestSearchHTTPErrorMock(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal server error"))
+	})
+
+	client := newTestClient(t, handler)
+	_, err := client.KeywordSearch(context.Background(), SearchOptions{Keyword: "test"})
+	if err == nil {
+		t.Fatal("expected error for 500 response")
+	}
+}
