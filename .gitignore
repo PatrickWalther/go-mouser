@@ -2,34 +2,36 @@
 *.o
 *.a
 *.so
-.DS_Store
-bin/
-dist/
+*.dylib
+*.dll
 *.exe
 *.exe~
-*.dll
-*.so
-*.dylib
 
 # Go workspace
 go.work
 go.work.sum
 
-# Go modules
-go.sum
-
 # IDE and editor files
 .vscode/
 .idea/
+*.iml
 *.swp
 *.swo
 *~
-.DS_Store
-*.iml
-.gradle/
-.gradle
-build/
-out/
+
+# AI agents and coding assistants
+.claude/
+.cursor/
+.aider*
+.copilot/
+.continue/
+.codeium/
+.windsurf/
+.bolt/
+.v0/
+.idx/
+.planning/
+.devcontainer/
 
 # Test coverage
 *.coverprofile
@@ -49,6 +51,7 @@ vendor/
 bin/
 dist/
 build/
+out/
 
 # Environment variables
 .env
@@ -56,16 +59,13 @@ build/
 .env.*.local
 
 # OS-specific
-Thumbs.db
 .DS_Store
+Thumbs.db
 
 # Temporary files
 *.tmp
 *.temp
 *.bak
-*.swp
-*.swo
-*~
 
 # Debug
 debug
