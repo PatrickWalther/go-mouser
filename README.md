@@ -194,8 +194,8 @@ The client enforces Mouser API rate limits:
 ```go
 // Check rate limit stats
 stats := client.RateLimitStats()
-fmt.Printf("Minute: %d/%d\n", stats.MinuteUsed, stats.MinuteLimit)
-fmt.Printf("Day: %d/%d\n", stats.DayUsed, stats.DayLimit)
+fmt.Printf("Minute remaining: %d\n", stats.MinuteRemaining)
+fmt.Printf("Daily remaining: %d\n", stats.DailyRemaining)
 ```
 
 ## Error Handling
