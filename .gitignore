@@ -20,18 +20,25 @@ go.work.sum
 *~
 
 # AI agents and coding assistants
+CLAUDE.md
 .claude/
+.cursorrules
 .cursor/
 .aider*
 .copilot/
 .continue/
 .codeium/
 .windsurf/
+.windsurfrules
 .bolt/
 .v0/
 .idx/
 .planning/
 .devcontainer/
+.github/copilot-instructions.md
+.clinerules
+cline_docs/
+codex.md
 
 # Test coverage
 *.coverprofile
