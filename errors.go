@@ -20,6 +20,18 @@ var (
 
 	// ErrNotFound is returned when a part is not found.
 	ErrNotFound = errors.New("mouser: part not found")
+
+	// ErrUnauthorized is returned when the API key is invalid or missing.
+	ErrUnauthorized = errors.New("mouser: unauthorized")
+
+	// ErrForbidden is returned when access is denied.
+	ErrForbidden = errors.New("mouser: forbidden")
+
+	// ErrInvalidRequest is returned when the request is malformed.
+	ErrInvalidRequest = errors.New("mouser: invalid request")
+
+	// ErrServerError is returned when the server returns a 5xx error.
+	ErrServerError = errors.New("mouser: server error")
 )
 
 // MouserError represents a structured error from the Mouser API.
@@ -43,13 +55,23 @@ func (e *MouserError) Error() string {
 
 // Unwrap returns the underlying error for errors.Is compatibility.
 func (e *MouserError) Unwrap() error {
-	if e.StatusCode == 429 {
-		return ErrRateLimitExceeded
-	}
-	if e.StatusCode == 404 {
+	switch e.StatusCode {
+	case 400:
+		return ErrInvalidRequest
+	case 401:
+		return ErrUnauthorized
+	case 403:
+		return ErrForbidden
+	case 404:
 		return ErrNotFound
+	case 429:
+		return ErrRateLimitExceeded
+	default:
+		if e.StatusCode >= 500 {
+			return ErrServerError
+		}
+		return nil
 	}
-	return nil
 }
 
 // APIError represents an error returned by the Mouser API in the response body.
@@ -83,17 +105,4 @@ func (e APIErrors) Error() string {
 		return e[0].Error()
 	}
 	return fmt.Sprintf("mouser: %d API errors: %s (and %d more)", len(e), e[0].Message, len(e)-1)
-}
-
-// HTTPError represents an HTTP-level error from the API.
-// Deprecated: Use MouserError instead for richer error information.
-type HTTPError struct {
-	StatusCode int
-	Status     string
-	Body       string
-}
-
-// Error implements the error interface for HTTPError.
-func (e *HTTPError) Error() string {
-	return fmt.Sprintf("mouser: HTTP error %d: %s", e.StatusCode, e.Status)
 }

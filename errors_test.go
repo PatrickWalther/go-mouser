@@ -209,25 +209,6 @@ func TestAPIErrorsEmpty(t *testing.T) {
 	}
 }
 
-// TestHTTPError tests HTTPError type.
-func TestHTTPError(t *testing.T) {
-	err := &HTTPError{
-		StatusCode: 500,
-		Status:     "Internal Server Error",
-		Body:       "Server crashed",
-	}
-
-	errStr := err.Error()
-
-	if !contains(errStr, "500") {
-		t.Errorf("expected status code in error: %s", errStr)
-	}
-
-	if !contains(errStr, "Internal Server Error") {
-		t.Errorf("expected status text in error: %s", errStr)
-	}
-}
-
 // TestErrorVariables tests that error variables are distinct.
 func TestErrorVariables(t *testing.T) {
 	errs := []error{
@@ -236,6 +217,10 @@ func TestErrorVariables(t *testing.T) {
 		ErrDailyLimitExceeded,
 		ErrInvalidResponse,
 		ErrNotFound,
+		ErrUnauthorized,
+		ErrForbidden,
+		ErrInvalidRequest,
+		ErrServerError,
 	}
 
 	for i, err1 := range errs {
@@ -258,6 +243,10 @@ func TestErrorVariableStrings(t *testing.T) {
 		{ErrDailyLimitExceeded, "daily"},
 		{ErrInvalidResponse, "invalid response"},
 		{ErrNotFound, "not found"},
+		{ErrUnauthorized, "unauthorized"},
+		{ErrForbidden, "forbidden"},
+		{ErrInvalidRequest, "invalid request"},
+		{ErrServerError, "server error"},
 	}
 
 	for _, tc := range testCases {
@@ -397,6 +386,41 @@ func TestErrorWrapping(t *testing.T) {
 	// Should match ErrNotFound via Unwrap
 	if !errors.Is(err2, ErrNotFound) {
 		t.Error("expected MouserError 404 to match ErrNotFound")
+	}
+}
+
+// TestMouserErrorUnwrapBadRequest tests Unwrap for 400 Bad Request.
+func TestMouserErrorUnwrapBadRequest(t *testing.T) {
+	err := &MouserError{StatusCode: 400, Message: "bad request"}
+	if !errors.Is(err, ErrInvalidRequest) {
+		t.Error("expected MouserError with 400 to unwrap to ErrInvalidRequest")
+	}
+}
+
+// TestMouserErrorUnwrapUnauthorized tests Unwrap for 401 Unauthorized.
+func TestMouserErrorUnwrapUnauthorized(t *testing.T) {
+	err := &MouserError{StatusCode: 401, Message: "unauthorized"}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Error("expected MouserError with 401 to unwrap to ErrUnauthorized")
+	}
+}
+
+// TestMouserErrorUnwrapForbidden tests Unwrap for 403 Forbidden.
+func TestMouserErrorUnwrapForbidden(t *testing.T) {
+	err := &MouserError{StatusCode: 403, Message: "forbidden"}
+	if !errors.Is(err, ErrForbidden) {
+		t.Error("expected MouserError with 403 to unwrap to ErrForbidden")
+	}
+}
+
+// TestMouserErrorUnwrapServerError tests Unwrap for 5xx errors.
+func TestMouserErrorUnwrapServerError(t *testing.T) {
+	codes := []int{500, 502, 503, 504}
+	for _, code := range codes {
+		err := &MouserError{StatusCode: code, Message: "server error"}
+		if !errors.Is(err, ErrServerError) {
+			t.Errorf("expected MouserError with %d to unwrap to ErrServerError", code)
+		}
 	}
 }
 
