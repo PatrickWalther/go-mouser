@@ -161,11 +161,16 @@ func (c *Client) buildURL(path string) (string, error) {
 
 // doRequest performs an HTTP request with rate limiting, retries, and error handling.
 func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}, result interface{}) error {
-	return c.doWithRetry(ctx, method, path, body, result)
+	return c.doWithRetry(ctx, method, path, nil, body, result)
+}
+
+// doRequestWithQuery performs an HTTP request with additional URL query parameters.
+func (c *Client) doRequestWithQuery(ctx context.Context, method, path string, query url.Values, body interface{}, result interface{}) error {
+	return c.doWithRetry(ctx, method, path, query, body, result)
 }
 
 // doWithRetry performs an HTTP request with retry logic.
-func (c *Client) doWithRetry(ctx context.Context, method, path string, body interface{}, result interface{}) error {
+func (c *Client) doWithRetry(ctx context.Context, method, path string, query url.Values, body interface{}, result interface{}) error {
 	var lastErr error
 	maxAttempts := c.retryConfig.MaxRetries + 1
 
@@ -177,7 +182,7 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, body inte
 			}
 		}
 
-		statusCode, retryAfter, err := c.doOnce(ctx, method, path, body, result)
+		statusCode, retryAfter, err := c.doOnce(ctx, method, path, query, body, result)
 		if err == nil {
 			return nil
 		}
@@ -205,7 +210,7 @@ func (c *Client) doWithRetry(ctx context.Context, method, path string, body inte
 
 // doOnce performs a single HTTP request attempt.
 // Returns (statusCode, retryAfterSeconds, error).
-func (c *Client) doOnce(ctx context.Context, method, path string, body interface{}, result interface{}) (int, int, error) {
+func (c *Client) doOnce(ctx context.Context, method, path string, query url.Values, body interface{}, result interface{}) (int, int, error) {
 	// Wait for rate limiter
 	if err := c.rateLimiter.Wait(ctx); err != nil {
 		return 0, 0, err
@@ -215,6 +220,22 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body interface
 	reqURL, err := c.buildURL(path)
 	if err != nil {
 		return 0, 0, err
+	}
+
+	// Merge additional query parameters
+	if len(query) > 0 {
+		u, err := url.Parse(reqURL)
+		if err != nil {
+			return 0, 0, fmt.Errorf("mouser: invalid URL: %w", err)
+		}
+		q := u.Query()
+		for k, vs := range query {
+			for _, v := range vs {
+				q.Set(k, v)
+			}
+		}
+		u.RawQuery = q.Encode()
+		reqURL = u.String()
 	}
 
 	// Marshal request body
