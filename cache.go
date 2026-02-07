@@ -132,6 +132,8 @@ type CacheConfig struct {
 	SearchTTL        time.Duration // TTL for search results
 	DetailsTTL       time.Duration // TTL for product details
 	ManufacturersTTL time.Duration // TTL for manufacturer list (longer, mostly static)
+	CurrenciesTTL    time.Duration // TTL for currencies list (reference data)
+	CountriesTTL     time.Duration // TTL for countries list (reference data)
 }
 
 // DefaultCacheConfig returns the default cache configuration.
@@ -141,6 +143,8 @@ func DefaultCacheConfig() CacheConfig {
 		SearchTTL:        5 * time.Minute,
 		DetailsTTL:       10 * time.Minute,
 		ManufacturersTTL: 24 * time.Hour,
+		CurrenciesTTL:    24 * time.Hour,
+		CountriesTTL:     24 * time.Hour,
 	}
 }
 
@@ -159,4 +163,14 @@ func cacheKeyForDetails(partNumber string) string {
 // cacheKeyForManufacturers generates a cache key for the manufacturer list.
 func cacheKeyForManufacturers() string {
 	return "manufacturers:list"
+}
+
+// cacheKeyForCurrencies generates a cache key for the currencies list.
+func cacheKeyForCurrencies(countryCode string) string {
+	return "currencies:" + countryCode
+}
+
+// cacheKeyForCountries generates a cache key for the countries list.
+func cacheKeyForCountries(countryCode string) string {
+	return "countries:" + countryCode
 }
