@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 )
 
@@ -80,70 +79,6 @@ func TestNewTestClientRoundtrip(t *testing.T) {
 	}
 	if len(result.Parts) != 1 || result.Parts[0].MouserPartNumber != "TEST-001" {
 		t.Errorf("unexpected parts: %+v", result.Parts)
-	}
-}
-
-// TestDoRequestWithQuery verifies that query parameters are sent correctly.
-func TestDoRequestWithQuery(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify query params
-		if got := r.URL.Query().Get("foo"); got != "bar" {
-			t.Errorf("expected query param foo=bar, got foo=%s", got)
-		}
-		if got := r.URL.Query().Get("baz"); got != "qux" {
-			t.Errorf("expected query param baz=qux, got baz=%s", got)
-		}
-		// apiKey should always be present
-		if got := r.URL.Query().Get("apiKey"); got != "test-api-key" {
-			t.Errorf("expected apiKey=test-api-key, got apiKey=%s", got)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-
-	client := newTestClient(t, handler)
-
-	query := url.Values{}
-	query.Set("foo", "bar")
-	query.Set("baz", "qux")
-
-	var resp map[string]string
-	err := client.doRequestWithQuery(context.Background(), "GET", "/test", query, nil, &resp)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if resp["status"] != "ok" {
-		t.Errorf("expected status=ok, got %v", resp)
-	}
-}
-
-// TestDoRequestWithQueryPost verifies POST with both query params and JSON body.
-func TestDoRequestWithQueryPost(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			t.Errorf("expected POST, got %s", r.Method)
-		}
-		if got := r.URL.Query().Get("param1"); got != "value1" {
-			t.Errorf("expected param1=value1, got param1=%s", got)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-
-	client := newTestClient(t, handler)
-
-	query := url.Values{}
-	query.Set("param1", "value1")
-
-	body := map[string]string{"key": "value"}
-	var resp map[string]string
-	err := client.doRequestWithQuery(context.Background(), "POST", "/test", query, body, &resp)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
 	}
 }
 

@@ -1,7 +1,6 @@
 package mouser
 
 import (
-	"context"
 	"testing"
 	"time"
 )
@@ -109,46 +108,6 @@ func TestCalculateBackoffMaxCap(t *testing.T) {
 	}
 }
 
-// TestParseRetryAfterSeconds tests parsing retry-after as seconds.
-func TestParseRetryAfterSeconds(t *testing.T) {
-	seconds := parseRetryAfter("60")
-	if seconds != 60 {
-		t.Errorf("expected 60, got %d", seconds)
-	}
-}
-
-// TestParseRetryAfterZero tests parsing zero retry-after.
-func TestParseRetryAfterZero(t *testing.T) {
-	seconds := parseRetryAfter("0")
-	if seconds != 0 {
-		t.Errorf("expected 0, got %d", seconds)
-	}
-}
-
-// TestParseRetryAfterEmpty tests parsing empty retry-after.
-func TestParseRetryAfterEmpty(t *testing.T) {
-	seconds := parseRetryAfter("")
-	if seconds != 0 {
-		t.Errorf("expected 0 for empty string, got %d", seconds)
-	}
-}
-
-// TestParseRetryAfterInvalid tests parsing invalid retry-after.
-func TestParseRetryAfterInvalid(t *testing.T) {
-	seconds := parseRetryAfter("invalid")
-	if seconds != 0 {
-		t.Errorf("expected 0 for invalid string, got %d", seconds)
-	}
-}
-
-// TestParseRetryAfterLarge tests parsing large retry-after.
-func TestParseRetryAfterLarge(t *testing.T) {
-	seconds := parseRetryAfter("3600")
-	if seconds != 3600 {
-		t.Errorf("expected 3600, got %d", seconds)
-	}
-}
-
 // TestShouldRetryRateLimited tests shouldRetry for 429.
 func TestShouldRetryRateLimited(t *testing.T) {
 	if !shouldRetry(nil, 429) {
@@ -247,61 +206,6 @@ func (e *timeoutError) Error() string   { return "timeout" }
 func (e *timeoutError) Timeout() bool   { return true }
 func (e *timeoutError) Temporary() bool { return true }
 
-// TestSleep tests the sleep function.
-func TestSleep(t *testing.T) {
-	ctx := context.Background()
-	start := time.Now()
-
-	err := sleep(ctx, 50*time.Millisecond)
-	elapsed := time.Since(start)
-
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-
-	if elapsed < 40*time.Millisecond {
-		t.Errorf("sleep duration too short: %v", elapsed)
-	}
-}
-
-// TestSleepContextCanceled tests sleep with canceled context.
-func TestSleepContextCanceled(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancel immediately
-
-	err := sleep(ctx, 1*time.Second)
-
-	if err == nil {
-		t.Error("expected error from canceled context")
-	}
-
-	if err != context.Canceled {
-		t.Errorf("expected context.Canceled, got %v", err)
-	}
-}
-
-// TestSleepContextTimeout tests sleep with context timeout.
-func TestSleepContextTimeout(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-
-	start := time.Now()
-	err := sleep(ctx, 1*time.Second)
-	elapsed := time.Since(start)
-
-	if err == nil {
-		t.Error("expected error from context timeout")
-	}
-
-	if err != context.DeadlineExceeded {
-		t.Errorf("expected context.DeadlineExceeded, got %v", err)
-	}
-
-	if elapsed > 200*time.Millisecond {
-		t.Errorf("sleep took too long: %v", elapsed)
-	}
-}
-
 // TestPow tests the pow helper function.
 func TestPow(t *testing.T) {
 	tests := []struct {
@@ -399,21 +303,5 @@ func TestBackoffProgression(t *testing.T) {
 		if backoff > 100*time.Millisecond {
 			t.Errorf("backoff %d (%v) exceeds max", i, backoff)
 		}
-	}
-}
-
-// TestParseRetryAfterNegative tests parsing negative retry-after.
-func TestParseRetryAfterNegative(t *testing.T) {
-	seconds := parseRetryAfter("-10")
-	// parseRetryAfter uses strconv.Atoi which will parse negative numbers
-	// so we just verify it parses consistently
-	if seconds > 0 {
-		// If it parsed negative, we accept it since Atoi can handle negatives
-		// The important thing is it doesn't crash
-		return
-	}
-	if seconds < 0 {
-		// Negative values should be handled gracefully
-		return
 	}
 }

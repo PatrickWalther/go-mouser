@@ -1,11 +1,9 @@
 package mouser
 
 import (
-	"context"
 	"math/rand"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -105,40 +103,4 @@ func pow(base, exp float64) float64 {
 		result *= base
 	}
 	return result
-}
-
-// parseRetryAfter parses the Retry-After header value.
-// Returns the number of seconds to wait, or 0 if not parseable.
-func parseRetryAfter(header string) int {
-	if header == "" {
-		return 0
-	}
-
-	// Try parsing as seconds
-	if seconds, err := strconv.Atoi(header); err == nil {
-		return seconds
-	}
-
-	// Try parsing as HTTP-date
-	if t, err := time.Parse(time.RFC1123, header); err == nil {
-		seconds := int(time.Until(t).Seconds())
-		if seconds > 0 {
-			return seconds
-		}
-	}
-
-	return 0
-}
-
-// sleep waits for the specified duration, respecting context cancellation.
-func sleep(ctx context.Context, d time.Duration) error {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
 }
