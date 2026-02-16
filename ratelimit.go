@@ -3,6 +3,9 @@ package mouser
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -235,6 +238,46 @@ type RateLimitStats struct {
 	DayRemaining    int
 	DayResetAt      time.Time
 	BlockedUntil    time.Time
+}
+
+// UpdateFromHeaders syncs rate limiter state from API response headers.
+// If present, X-RateLimit-* headers sync the daily limit and X-BurstLimit-*
+// headers sync the minute limit.
+func (r *RateLimiter) UpdateFromHeaders(headers http.Header) {
+	if headers == nil {
+		return
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Sync burst/minute limit
+	if limit := headerInt(headers, "X-BurstLimit-Limit"); limit > 0 {
+		r.requestsPerMinute = limit
+	}
+	if remaining := headerInt(headers, "X-BurstLimit-Remaining"); remaining >= 0 {
+		r.minuteTokens = remaining
+	}
+
+	// Sync day limit
+	if limit := headerInt(headers, "X-RateLimit-Limit"); limit > 0 {
+		r.requestsPerDay = limit
+	}
+	if remaining := headerInt(headers, "X-RateLimit-Remaining"); remaining >= 0 {
+		r.dailyTokens = remaining
+	}
+}
+
+func headerInt(headers http.Header, key string) int {
+	raw := strings.TrimSpace(headers.Get(key))
+	if raw == "" {
+		return -1
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return -1
+	}
+	return value
 }
 
 // Stats returns current rate limit statistics.

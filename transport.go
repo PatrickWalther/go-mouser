@@ -140,6 +140,9 @@ func (c *Client) doOnce(ctx context.Context, method, path string, query url.Valu
 		return resp.StatusCode, 0, fmt.Errorf("mouser: failed to read response: %w", err)
 	}
 
+	// Sync rate limiter from response headers on every response.
+	c.rateLimiter.UpdateFromHeaders(resp.Header)
+
 	// Parse Retry-After header
 	retryAfter := parseRetryAfter(resp.Header.Get("Retry-After"))
 

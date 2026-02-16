@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -530,6 +531,126 @@ func TestRateLimiterHighLimits(t *testing.T) {
 	stats := rl.Stats()
 	if stats.MinuteRemaining <= 0 {
 		t.Error("expected minute remaining to be positive with high limits")
+	}
+}
+
+// TestUpdateFromHeadersBurst tests syncing minute state from burst headers.
+func TestUpdateFromHeadersBurst(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	headers := http.Header{}
+	headers.Set("X-BurstLimit-Limit", "30")
+	headers.Set("X-BurstLimit-Remaining", "20")
+
+	rl.UpdateFromHeaders(headers)
+
+	stats := rl.Stats()
+	if stats.MinuteLimit != 30 {
+		t.Errorf("expected minute limit 30, got %d", stats.MinuteLimit)
+	}
+	if stats.MinuteRemaining != 20 {
+		t.Errorf("expected minute remaining 20, got %d", stats.MinuteRemaining)
+	}
+	if stats.MinuteUsed != 10 {
+		t.Errorf("expected minute used 10, got %d", stats.MinuteUsed)
+	}
+}
+
+// TestUpdateFromHeadersDay tests syncing day state from rate limit headers.
+func TestUpdateFromHeadersDay(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	headers := http.Header{}
+	headers.Set("X-RateLimit-Limit", "1000")
+	headers.Set("X-RateLimit-Remaining", "900")
+
+	rl.UpdateFromHeaders(headers)
+
+	stats := rl.Stats()
+	if stats.DayLimit != 1000 {
+		t.Errorf("expected day limit 1000, got %d", stats.DayLimit)
+	}
+	if stats.DayRemaining != 900 {
+		t.Errorf("expected day remaining 900, got %d", stats.DayRemaining)
+	}
+	if stats.DayUsed != 100 {
+		t.Errorf("expected day used 100, got %d", stats.DayUsed)
+	}
+}
+
+// TestUpdateFromHeadersBothLimits tests syncing both minute and day from headers.
+func TestUpdateFromHeadersBothLimits(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	headers := http.Header{}
+	headers.Set("X-BurstLimit-Limit", "30")
+	headers.Set("X-BurstLimit-Remaining", "29")
+	headers.Set("X-RateLimit-Limit", "1000")
+	headers.Set("X-RateLimit-Remaining", "850")
+
+	rl.UpdateFromHeaders(headers)
+
+	stats := rl.Stats()
+	if stats.MinuteUsed != 1 {
+		t.Errorf("expected minute used 1, got %d", stats.MinuteUsed)
+	}
+	if stats.DayUsed != 150 {
+		t.Errorf("expected day used 150, got %d", stats.DayUsed)
+	}
+}
+
+// TestUpdateFromHeadersNil tests that nil headers are handled safely.
+func TestUpdateFromHeadersNil(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	_ = rl.Allow()
+	_ = rl.Allow()
+	before := rl.Stats()
+
+	rl.UpdateFromHeaders(nil)
+
+	after := rl.Stats()
+	if before.MinuteUsed != after.MinuteUsed {
+		t.Error("nil headers should not change state")
+	}
+}
+
+// TestUpdateFromHeadersEmpty tests that empty headers are a no-op.
+func TestUpdateFromHeadersEmpty(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	_ = rl.Allow()
+	before := rl.Stats()
+
+	rl.UpdateFromHeaders(http.Header{})
+
+	after := rl.Stats()
+	if before.MinuteUsed != after.MinuteUsed {
+		t.Error("empty headers should not change minute state")
+	}
+	if before.DayUsed != after.DayUsed {
+		t.Error("empty headers should not change day state")
+	}
+}
+
+// TestUpdateFromHeadersUpdatesLimit tests that the server can update the limit value.
+func TestUpdateFromHeadersUpdatesLimit(t *testing.T) {
+	rl := NewRateLimiter(30, 1000)
+
+	headers := http.Header{}
+	headers.Set("X-BurstLimit-Limit", "60")
+	headers.Set("X-BurstLimit-Remaining", "55")
+	headers.Set("X-RateLimit-Limit", "500")
+	headers.Set("X-RateLimit-Remaining", "450")
+
+	rl.UpdateFromHeaders(headers)
+
+	stats := rl.Stats()
+	if stats.MinuteLimit != 60 {
+		t.Errorf("expected minute limit 60, got %d", stats.MinuteLimit)
+	}
+	if stats.DayLimit != 500 {
+		t.Errorf("expected day limit 500, got %d", stats.DayLimit)
 	}
 }
 
