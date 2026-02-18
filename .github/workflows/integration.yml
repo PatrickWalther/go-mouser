@@ -1,0 +1,25 @@
+name: Integration
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Run integration tests
+        run: go test -v -run Integration ./...
+        env:
+          MOUSER_API_KEY: ${{ secrets.MOUSER_API_KEY }}
